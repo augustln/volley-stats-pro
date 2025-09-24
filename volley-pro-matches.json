@@ -1,0 +1,657 @@
+{
+  "matches": [
+    {
+      "teamA": [
+        "Arsen",
+        "Dmitry",
+        "Diyarbek",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Alisha",
+        "Anton",
+        "Bolatkhan",
+        "Dariya",
+        "Diyar",
+        "Mikhail"
+      ],
+      "scoreA": 10,
+      "scoreB": 8,
+      "ts": 1757046493947
+    },
+    {
+      "teamA": [
+        "Arsen",
+        "Dmitry",
+        "Diyarbek",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Arnur",
+        "Dias",
+        "Nurasyl",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 10,
+      "scoreB": 6,
+      "ts": 1757046536870
+    },
+    {
+      "teamA": [
+        "Arsen",
+        "Dmitry",
+        "Diyarbek",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Alisha",
+        "Anton",
+        "Bolatkhan",
+        "Dariya",
+        "Diyar",
+        "Mikhail"
+      ],
+      "scoreA": 10,
+      "scoreB": 7,
+      "ts": 1757046550487
+    },
+    {
+      "teamA": [
+        "Arsen",
+        "Dmitry",
+        "Diyarbek",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Arnur",
+        "Dias",
+        "Nurasyl",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 10,
+      "scoreB": 6,
+      "ts": 1757046557185
+    },
+    {
+      "teamA": [
+        "Alisha",
+        "Arsen",
+        "Bolatkhan",
+        "Dariya",
+        "Roman",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Anton",
+        "Arnur",
+        "Dias",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 7,
+      "scoreB": 10,
+      "ts": 1757062065832
+    },
+    {
+      "teamA": [
+        "Dmitry",
+        "Diyarbek",
+        "Nurasyl",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Anton",
+        "Arnur",
+        "Dias",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 10,
+      "scoreB": 7,
+      "ts": 1757062102567
+    },
+    {
+      "teamA": [
+        "Dmitry",
+        "Diyarbek",
+        "Nurasyl",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Alisha",
+        "Anton",
+        "Arsen",
+        "Bolatkhan",
+        "Dariya",
+        "Roman"
+      ],
+      "scoreA": 10,
+      "scoreB": 9,
+      "ts": 1757062164971
+    },
+    {
+      "teamA": [
+        "Dmitry",
+        "Diyarbek",
+        "Nurasyl",
+        "Alexander",
+        "Tikhon",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Anton",
+        "Arnur",
+        "Dias",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 9,
+      "scoreB": 10,
+      "ts": 1757062195739
+    },
+    {
+      "teamA": [
+        "Alisha",
+        "Arsen",
+        "Bolatkhan",
+        "Dariya",
+        "Roman",
+        "Alexander"
+      ],
+      "teamB": [
+        "Altair",
+        "Anton",
+        "Arnur",
+        "Dias",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 10,
+      "scoreB": 9,
+      "ts": 1757062222626
+    },
+    {
+      "teamA": [
+        "Anton",
+        "Dmitry",
+        "Maxim",
+        "Nurasyl",
+        "Alexander",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Arnur",
+        "Arsen",
+        "Diyarbek",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 10,
+      "scoreB": 7,
+      "ts": 1757402632722
+    },
+    {
+      "teamA": [
+        "Anton",
+        "Dmitry",
+        "Maxim",
+        "Nurasyl",
+        "Alexander",
+        "Zhan"
+      ],
+      "teamB": [
+        "Alisha",
+        "Dariya",
+        "Diyarbek",
+        "Mikhail",
+        "Roman",
+        "Kozhabergen"
+      ],
+      "scoreA": 10,
+      "scoreB": 7,
+      "ts": 1757402650831
+    },
+    {
+      "teamA": [
+        "Anton",
+        "Dmitry",
+        "Maxim",
+        "Nurasyl",
+        "Alexander",
+        "Zhan"
+      ],
+      "teamB": [
+        "Altair",
+        "Arnur",
+        "Arsen",
+        "Diyarbek",
+        "Serzhan",
+        "Zangar"
+      ],
+      "scoreA": 10,
+      "scoreB": 6,
+      "ts": 1757402674931
+    },
+    {
+      "teamA": [
+        "Zangar",
+        "Dmitry",
+        "Zhan",
+        "Alisha",
+        "Dariya",
+        "Alexander"
+      ],
+      "teamB": [
+        "Diyarbek",
+        "Maxim",
+        "Diyar",
+        "Dias",
+        "Roman",
+        "Nurasyl"
+      ],
+      "scoreA": 9,
+      "scoreB": 15,
+      "ts": 1757649761719
+    },
+    {
+      "teamA": [
+        "Tikhon",
+        "Anton",
+        "Nurasyl",
+        "Serzhan",
+        "Altair",
+        "Arnur"
+      ],
+      "teamB": [
+        "Diyarbek",
+        "Maxim",
+        "Dias",
+        "Diyar",
+        "Roman",
+        "Bolatkhan"
+      ],
+      "scoreA": 14,
+      "scoreB": 15,
+      "ts": 1757649783098
+    },
+    {
+      "teamA": [
+        "Zangar",
+        "Dmitry",
+        "Zhan",
+        "Alisha",
+        "Dariya",
+        "Alexander"
+      ],
+      "teamB": [
+        "Diyarbek",
+        "Maxim",
+        "Dias",
+        "Diyar",
+        "Roman",
+        "Bolatkhan"
+      ],
+      "scoreA": 11,
+      "scoreB": 15,
+      "ts": 1757649809482
+    },
+    {
+      "teamA": [
+        "Tikhon",
+        "Anton",
+        "Nurasyl",
+        "Serzhan",
+        "Altair",
+        "Arnur"
+      ],
+      "teamB": [
+        "Diyarbek",
+        "Maxim",
+        "Dias",
+        "Diyar",
+        "Roman",
+        "Bolatkhan"
+      ],
+      "scoreA": 15,
+      "scoreB": 8,
+      "ts": 1757649834053
+    },
+    {
+      "teamA": [
+        "Alexander",
+        "Alisha",
+        "Dariya",
+        "Dmitry",
+        "Zhan",
+        "Zangar"
+      ],
+      "teamB": [
+        "Tikhon",
+        "Anton",
+        "Bolatkhan",
+        "Nurasyl",
+        "Diyarbek",
+        "Dias"
+      ],
+      "scoreA": 15,
+      "scoreB": 12,
+      "ts": 1757666909589
+    },
+    {
+      "teamA": [
+        "Alexander",
+        "Alisha",
+        "Dariya",
+        "Dmitry",
+        "Zhan",
+        "Zangar"
+      ],
+      "teamB": [
+        "Anton",
+        "Nurasyl",
+        "Arnur",
+        "Serzhan",
+        "Altair",
+        "Maxim"
+      ],
+      "scoreA": 14,
+      "scoreB": 15,
+      "ts": 1757666946281
+    },
+    {
+      "teamA": [
+        "Tikhon",
+        "Anton",
+        "Bolatkhan",
+        "Nurasyl",
+        "Diyarbek",
+        "Dias"
+      ],
+      "teamB": [
+        "Zhan",
+        "Alexander",
+        "Arnur",
+        "Serzhan",
+        "Altair",
+        "Maxim"
+      ],
+      "scoreA": 13,
+      "scoreB": 15,
+      "ts": 1757666973810
+    },
+    {
+      "teamA": [
+        "Alexander",
+        "Alisha",
+        "Dariya",
+        "Dmitry",
+        "Zhan",
+        "Zangar"
+      ],
+      "teamB": [
+        "Diyarbek",
+        "Maxim",
+        "Anton",
+        "Altair",
+        "Serzhan",
+        "Arnur"
+      ],
+      "scoreA": 9,
+      "scoreB": 15,
+      "ts": 1757667008317
+    },
+    {
+      "teamA": [
+        "Arsen",
+        "Roman",
+        "Altair",
+        "Serzhan",
+        "Dias",
+        "Diyar"
+      ],
+      "teamB": [
+        "Zhan",
+        "Dmitry",
+        "Dariya",
+        "Alisha",
+        "Anton",
+        "Alexander"
+      ],
+      "scoreA": 14,
+      "scoreB": 15,
+      "ts": 1758258832275
+    },
+    {
+      "teamA": [
+        "Zhan",
+        "Dmitry",
+        "Dariya",
+        "Alisha",
+        "Anton",
+        "Alexander"
+      ],
+      "teamB": [
+        "Arsen",
+        "Roman",
+        "Altair",
+        "Serzhan",
+        "Dias",
+        "Diyar"
+      ],
+      "scoreA": 10,
+      "scoreB": 15,
+      "ts": 1758258929509
+    },
+    {
+      "teamA": [
+        "Arsen",
+        "Roman",
+        "Altair",
+        "Serzhan",
+        "Dias",
+        "Diyar"
+      ],
+      "teamB": [
+        "Anton",
+        "Bolatkhan",
+        "Nurasyl",
+        "Maxim",
+        "Zhan",
+        "Alexander"
+      ],
+      "scoreA": 10,
+      "scoreB": 7,
+      "ts": 1758259077464
+    },
+    {
+      "teamA": [
+        "Altair",
+        "Anton",
+        "Alexander",
+        "Diyar",
+        "Dias",
+        "Arsen"
+      ],
+      "teamB": [
+        "Zhan",
+        "Serzhan",
+        "Dmitry",
+        "Nurasyl",
+        "Mikhail",
+        "Maxim"
+      ],
+      "scoreA": 15,
+      "scoreB": 10,
+      "ts": 1758272762995
+    },
+    {
+      "teamA": [
+        "Altair",
+        "Anton",
+        "Alexander",
+        "Diyar",
+        "Dias",
+        "Arsen"
+      ],
+      "teamB": [
+        "Zhan",
+        "Serzhan",
+        "Dmitry",
+        "Nurasyl",
+        "Mikhail",
+        "Maxim"
+      ],
+      "scoreA": 15,
+      "scoreB": 14,
+      "ts": 1758272793603
+    },
+    {
+      "teamA": [
+        "Zhan",
+        "Serzhan",
+        "Dmitry",
+        "Nurasyl",
+        "Mikhail",
+        "Maxim"
+      ],
+      "teamB": [
+        "Altair",
+        "Anton",
+        "Alexander",
+        "Diyar",
+        "Dias",
+        "Arsen"
+      ],
+      "scoreA": 8,
+      "scoreB": 15,
+      "ts": 1758272857180
+    }
+  ],
+  "playerDetails": {
+    "Arsen": {
+      "lastName": "Dzhakupov",
+      "abbrev": "DZH",
+      "number": "20"
+    },
+    "Diyarbek": {
+      "lastName": "Abdumalikov",
+      "abbrev": "ABD",
+      "number": "69"
+    },
+    "Tikhon": {
+      "lastName": "Akimov",
+      "abbrev": "AKI",
+      "number": "72"
+    },
+    "Zhan": {
+      "lastName": "Abdurakhim",
+      "abbrev": "ABR",
+      "number": "70"
+    },
+    "Alisha": {
+      "lastName": "Kim",
+      "abbrev": "KIM",
+      "number": "18"
+    },
+    "Anton": {
+      "lastName": "Gorlanov",
+      "abbrev": "GOR",
+      "number": "93"
+    },
+    "Dariya": {
+      "lastName": "Dymykova",
+      "abbrev": "DYM",
+      "number": "8"
+    },
+    "Diyar": {
+      "lastName": "Ospanov",
+      "abbrev": "OSP",
+      "number": "88"
+    },
+    "Altair": {
+      "lastName": "Appazov",
+      "abbrev": "APP",
+      "number": "4"
+    },
+    "Arnur": {
+      "lastName": "Sardarbekov",
+      "abbrev": "SAR",
+      "number": "10"
+    },
+    "Dias": {
+      "lastName": "Ospanov",
+      "abbrev": "OSD",
+      "number": "52"
+    },
+    "Nurasyl": {
+      "lastName": "Kuanbay",
+      "abbrev": "KUA",
+      "number": "99"
+    },
+    "Serzhan": {
+      "lastName": "Taizhenov",
+      "abbrev": "TAI",
+      "number": "12"
+    },
+    "Zangar": {
+      "lastName": "Aydar",
+      "abbrev": "AYD",
+      "number": "2"
+    },
+    "Maxim": {
+      "lastName": "Gutov",
+      "abbrev": "GUT",
+      "number": "48"
+    },
+    "Alexander": {
+      "lastName": "Emelyanov",
+      "abbrev": "EME",
+      "number": "87"
+    },
+    "Dmitry": {
+      "lastName": "Nikishov",
+      "abbrev": "NIK",
+      "number": "47"
+    },
+    "Kozhabergen": {
+      "lastName": "Kanatbaev",
+      "abbrev": "KAN",
+      "number": "1"
+    },
+    "Roman": {
+      "lastName": "Zhilin",
+      "abbrev": "ZHI",
+      "number": "42"
+    },
+    "Mikhail": {
+      "lastName": "Poleopulo",
+      "abbrev": "POL",
+      "number": "15"
+    },
+    "Bolatkhan": {
+      "lastName": "Fayzulla",
+      "abbrev": "FAY",
+      "number": "55"
+    }
+  }
+}
