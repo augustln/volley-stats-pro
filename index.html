@@ -742,7 +742,7 @@
                     const postSkill = historyEntry.mu - 3 * historyEntry.sigma;
                     const skillChange = postSkill - preSkill;
                     const isTeamA = match.teamA.includes(playerName);
-                    const won = (isTeamA && match.scoreA > match.scoreB) || (!isA && match.scoreB > match.scoreA);
+                    const won = (isTeamA && match.scoreA > match.scoreB) || (!isTeamA && match.scoreB > match.scoreA);
                     return this.templates.playerMatchHistoryRow(match, matchId, won, skillChange);
                 }).join('');
             },
@@ -1162,3 +1162,4 @@
     </script>
 </body>
 </html>
+
