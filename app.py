@@ -62,7 +62,7 @@ def calculate_all_stats():
         team_b_ratings = {p: ratings[p] for p in match['teamB']}
 
         # Superlative calculations (must be done BEFORE ratings are updated)
-        win_prob_a = _win_probability(team_a_ratings.values(), team_b_ratings.values())
+        win_prob_a = _win_probability(list(team_a_ratings.values()), list(team_b_ratings.values()))
         winner_prob = win_prob_a if match['scoreA'] > match['scoreB'] else 1 - win_prob_a
         if winner_prob < superlatives['upset']['prob']:
             superlatives['upset'] = {'prob': winner_prob, 'match_id': match_index}
@@ -108,39 +108,25 @@ def calculate_all_stats():
             last_played_index[p] = match_index
 
         # Store historical leaderboard
-        current_leaderboard_data = {name: {'name': name, 'skill': r.mu - 3 * r.sigma} for name, r in ratings.items()}
+        current_leaderboard_list = sorted(
+            [{'name': name, 'skill': r.mu - 3 * r.sigma} for name, r in ratings.items()],
+            key=lambda x: x['skill'], reverse=True
+        )
         
-        if len(historical_leaderboards) > 0:
-            prev_leaderboard = historical_leaderboards[-1]['leaderboard']
-            prev_ranks = {p['name']: i for i, p in enumerate(prev_leaderboard)}
-            
-            # Create a sorted list of players for the current leaderboard
-            current_leaderboard_list = sorted(current_leaderboard_data.values(), key=lambda x: x['skill'], reverse=True)
-            
-            for i, player in enumerate(current_leaderboard_list):
-                prev_rank = prev_ranks.get(player['name'])
-                if prev_rank is not None:
-                    player['change'] = prev_rank - i
-                else:
-                    player['change'] = 'new'
-            historical_leaderboards.append({'leaderboard': current_leaderboard_list, 'match_id': match_index})
-        else:
-            current_leaderboard_list = sorted(current_leaderboard_data.values(), key=lambda x: x['skill'], reverse=True)
-            for player in current_leaderboard_list:
-                player['change'] = 0
-            historical_leaderboards.append({'leaderboard': current_leaderboard_list, 'match_id': match_index})
+        prev_leaderboard = historical_leaderboards[-1]['leaderboard']
+        prev_ranks = {p['name']: i for i, p in enumerate(prev_leaderboard)}
 
+        for i, player in enumerate(current_leaderboard_list):
+            prev_rank = prev_ranks.get(player['name'])
+            if prev_rank is not None:
+                player['change'] = prev_rank - i
+            else:
+                player['change'] = 'new'
+        
+        historical_leaderboards.append({'leaderboard': current_leaderboard_list, 'match_id': match_index})
 
     # --- Post-Calculation Analysis ---
     leaderboard = historical_leaderboards[-1]['leaderboard']
-    if len(historical_leaderboards) > 1:
-        prev_leaderboard = historical_leaderboards[-2]['leaderboard']
-        prev_ranks = {p['name']: i for i, p in enumerate(prev_leaderboard)}
-        for i, player in enumerate(leaderboard):
-            prev_rank = prev_ranks.get(player['name'])
-            player['change'] = (prev_rank - i) if prev_rank is not None else 'new'
-    else:
-        for player in leaderboard: player['change'] = 0
 
     player_stats = {}
     for name in player_names:
@@ -170,6 +156,11 @@ def calculate_all_stats():
             "longestWinStreak": longest_streak,
             "last_played": last_played_index[name]
         }
+
+    # Inject final leaderboard changes into player_stats for frontend consistency
+    for player in leaderboard:
+        if player['name'] in player_stats:
+            player_stats[player['name']]['change'] = player['change']
 
     final_duos = sorted([d for d in duos.values() if d['total'] >= 3],
                         key=lambda x: (x['wins'] / x['total'], x['total']), reverse=True)[:10]
