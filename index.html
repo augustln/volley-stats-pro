@@ -348,6 +348,9 @@
                         mainView.innerHTML = renderMap[tabName].call(this);
                         mainView.dataset.renderedTab = tabName;
                         this.attachEventListeners(tabName);
+                        if (tabName === 'admin') {
+                            this.updateAddMatchView();
+                        }
                         lucide.createIcons();
                     } catch (error) {
                          console.error(`Failed to render tab "${tabName}":`, error);
@@ -969,11 +972,7 @@
                     const recordListTemplate = (record) => {
                         const topPlayers = Object.values(playerStats)
                             .filter(p => !record.minGames || p.total >= record.minGames)
-                            .sort((a,b) => {
-                                const valA = record.key === 'losses' ? -a[record.key] : a[record.key];
-                                const valB = record.key === 'losses' ? -b[record.key] : b[record.key];
-                                return valB - valA;
-                            })
+                            .sort((a,b) => b[record.key] - a[record.key])
                             .slice(0, 5);
 
                         let listHtml = ''; let lastValue = null; let rank = 0;
@@ -1119,4 +1118,5 @@
     </script>
 </body>
 </html>
+
 
