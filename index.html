@@ -552,6 +552,10 @@
                     playerStatsSort.direction = ['name'].includes(newColumn) ? 'asc' : 'desc';
                 }
                 this.renderPlayerStatsTable(true);
+                // Re-attach listeners after re-rendering the body
+                document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
+                    el.addEventListener('click', () => this.renderPlayerDetail(el.dataset.playerName));
+                });
             },
 
             updateHead2Head() {
@@ -1126,4 +1130,5 @@
     </script>
 </body>
 </html>
+
 
