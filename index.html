@@ -221,12 +221,10 @@
                 playerStatsSort: { column: 'skill', direction: 'desc' },
                 adminSecret: null,
                 showInactive: false,
-                theme: 'dark',
             },
 
             // --- INITIALIZATION ---
             init() {
-                this.initTheme();
                 this.setupSecretScreen();
                 lucide.createIcons();
             },
@@ -372,7 +370,7 @@
                         matches: this.renderMatches,
                         history: this.renderHistory,
                         guide: () => this.templates.guide(),
-                        admin: this.renderAdmin,
+                        admin: () => this.templates.adminWrapper(),
                     };
                     try {
                         mainView.innerHTML = renderMap[tabName].call(this);
@@ -422,7 +420,6 @@
                 if (viewName === 'admin') {
                      document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
                      document.getElementById('backup-btn')?.addEventListener('click', () => this.downloadBackup());
-                     document.getElementById('theme-toggle')?.addEventListener('change', e => this.toggleTheme(e.target.checked));
                 }
                 if (['leaderboard', 'player_stats'].includes(viewName)) {
                     document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
@@ -1091,18 +1088,6 @@
                             <h2 class="text-2xl font-bold mb-4">Admin Tools</h2>
                             <div class="space-y-4 text-sm">
                                <button id="backup-btn" class="w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Download Full Backup</button>
-                               
-                               <div class="flex justify-between items-center pt-4 border-t border-slate-700/50">
-                                   <label for="theme-toggle" class="font-medium">Theme</label>
-                                   <div class="flex items-center gap-2">
-                                       <i data-lucide="sun"></i>
-                                       <label class="relative inline-flex items-center cursor-pointer">
-                                         <input type="checkbox" id="theme-toggle" class="sr-only peer" ${this.state.theme === 'dark' ? 'checked' : ''}>
-                                         <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-violet-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
-                                       </label>
-                                       <i data-lucide="moon"></i>
-                                   </div>
-                               </div>
                             </div>
                         </div>
                     </div>`
