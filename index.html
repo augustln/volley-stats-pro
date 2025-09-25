@@ -222,6 +222,7 @@
                 playerStatsSort: { column: 'skill', direction: 'desc' },
                 adminSecret: null,
                 showInactive: false,
+                currentView: 'main', // 'main' or 'detail'
             },
 
             // --- INITIALIZATION ---
@@ -248,7 +249,6 @@
                 this.renderAdminStatus();
                 this.setupTabListener();
                 await this.fetchData();
-                this.activateTab('leaderboard');
             },
 
             setupTabListener() {
@@ -263,19 +263,20 @@
 
             // --- DATA FETCHING & HANDLING ---
             async fetchData(showLoading = true) {
-                const mainView = document.getElementById('main-view');
                 if (showLoading) {
-                    mainView.innerHTML = this.templates.loader('Fetching latest stats...');
+                   this.showMainView(); // Show loader in main view
+                   document.getElementById('main-view').innerHTML = this.templates.loader('Fetching latest stats...');
                 }
                 try {
                     const response = await fetch('/api/data');
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     this.state.data = await response.json();
                     this.processData();
+                    // After fetching, always render the active tab
                     this.activateTab(this.state.activeTab, true);
                 } catch (error) {
                     console.error("Failed to fetch data:", error);
-                    mainView.innerHTML = this.templates.error('Could not load data from the server. Please ensure the backend is running and refresh the page.');
+                    document.getElementById('main-view').innerHTML = this.templates.error('Could not load data from the server. Please ensure the backend is running and refresh the page.');
                 }
             },
 
@@ -350,60 +351,64 @@
                 this.state.data.superlatives = { ...this.state.data.superlatives, ...superlatives };
             },
 
+            // --- VIEW MANAGEMENT ---
+            showMainView() {
+                this.state.currentView = 'main';
+                document.getElementById('main-view').classList.remove('hidden');
+                document.getElementById('detail-view').classList.add('hidden');
+            },
+
+            showDetailView() {
+                this.state.currentView = 'detail';
+                document.getElementById('main-view').classList.add('hidden');
+                document.getElementById('detail-view').classList.remove('hidden');
+            },
+
             // --- NAVIGATION & RENDERING ---
             activateTab(tabName, forceRender = false) {
                 if (!this.state.data) return;
+                
+                // Always show the main view when switching tabs
+                this.showMainView();
+                
                 this.state.activeTab = tabName;
-                document.getElementById('main-view').classList.remove('hidden');
-                document.getElementById('detail-view').innerHTML = '';
-                document.getElementById('detail-view').classList.add('hidden');
 
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
                 document.querySelector(`.tab[data-tab="${tabName}"]`)?.classList.add('tab-active');
 
                 const mainView = document.getElementById('main-view');
-                if (mainView.dataset.renderedTab !== tabName || forceRender) {
-                    const renderMap = {
-                        leaderboard: this.renderLeaderboard,
-                        player_stats: this.renderPlayerStatsTable,
-                        head2head: this.renderHead2Head,
-                        records: this.renderRecords,
-                        matches: this.renderMatches,
-                        history: this.renderHistory,
-                        guide: () => this.templates.guide(),
-                        admin: () => this.templates.adminWrapper(),
-                    };
-                    try {
-                        mainView.innerHTML = renderMap[tabName].call(this);
-                        mainView.dataset.renderedTab = tabName;
-                        this.attachEventListeners(tabName);
-                        lucide.createIcons();
-                    } catch (error) {
-                         console.error(`Failed to render tab "${tabName}":`, error);
-                         mainView.innerHTML = this.templates.error(`An error occurred while rendering this tab. Check the console for details.`);
-                         lucide.createIcons();
-                    }
+                const renderMap = {
+                    leaderboard: this.renderLeaderboard,
+                    player_stats: this.renderPlayerStatsTable,
+                    head2head: this.renderHead2Head,
+                    records: this.renderRecords,
+                    matches: this.renderMatches,
+                    history: this.renderHistory,
+                    guide: () => this.templates.guide(),
+                    admin: () => this.templates.adminWrapper(),
+                };
+                try {
+                    mainView.innerHTML = renderMap[tabName].call(this);
+                    this.attachEventListeners(tabName);
+                    lucide.createIcons();
+                } catch (error) {
+                     console.error(`Failed to render tab "${tabName}":`, error);
+                     mainView.innerHTML = this.templates.error(`An error occurred while rendering this tab. Check the console for details.`);
+                     lucide.createIcons();
                 }
             },
 
             renderPlayerDetail(playerName) {
-                // BUG FIX: Added a guard clause to prevent the app from crashing if it tries to
-                // render a profile for a player that doesn't exist in the data. This prevents the
-                // blank screen issue by showing a clear error message instead.
                 if (!this.state.data.playerStats[playerName]) {
                     console.error(`Player not found in stats object: ${playerName}`);
-                    const mainView = document.getElementById('main-view');
-                    mainView.innerHTML = this.templates.error(`Could not find data for player "${playerName}".`);
-                    // Ensure the main view is visible to show the error
-                    mainView.classList.remove('hidden');
-                    document.getElementById('detail-view').classList.add('hidden');
+                    this.showMainView();
+                    document.getElementById('main-view').innerHTML = this.templates.error(`Could not find data for player "${playerName}".`);
                     lucide.createIcons();
                     return;
                 }
 
-                document.getElementById('main-view').classList.add('hidden');
+                this.showDetailView();
                 const detailView = document.getElementById('detail-view');
-                detailView.classList.remove('hidden');
                 const stats = this.state.data.playerStats[playerName];
                 const details = this.state.data.playerDetails[playerName] || {};
                 const rank = this.getRankInfo(stats.skill);
@@ -418,6 +423,21 @@
 
             // --- EVENT LISTENER ATTACHMENT ---
             attachEventListeners(viewName) {
+                // Event Delegation for player links
+                const mainContent = document.getElementById('content-wrapper');
+                mainContent.onclick = (e) => {
+                    const playerLink = e.target.closest('[data-player-name]');
+                    const matchLink = e.target.closest('[data-match-id]');
+
+                    if (playerLink) {
+                        e.preventDefault();
+                        this.renderPlayerDetail(playerLink.dataset.playerName);
+                    } else if (matchLink) {
+                        e.preventDefault();
+                        this.showMatchModal(matchLink.dataset.matchId);
+                    }
+                };
+
                 if (viewName === 'leaderboard') {
                     document.getElementById('toggle-inactive')?.addEventListener('change', e => {
                         this.state.showInactive = e.target.checked;
@@ -436,19 +456,9 @@
                      document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
                      document.getElementById('backup-btn')?.addEventListener('click', () => this.downloadBackup());
                 }
-                if (['leaderboard', 'player_stats'].includes(viewName)) {
-                    document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
-                        el.addEventListener('click', () => this.renderPlayerDetail(el.dataset.playerName));
-                    });
-                }
                  if (viewName === 'player_stats') {
                     document.querySelectorAll('.sortable-header').forEach(el => {
                         el.addEventListener('click', () => this.sortPlayerStats(el.dataset.sortBy));
-                    });
-                }
-                if (['records', 'matches', 'playerDetail'].includes(viewName)) {
-                    document.querySelectorAll('[data-match-id]').forEach(el => {
-                        el.addEventListener('click', () => this.showMatchModal(el.dataset.matchId));
                     });
                 }
                 if (viewName === 'playerDetail') {
@@ -512,6 +522,8 @@
                             el.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
                         }
                     });
+                    // After re-rendering the body, re-add specific listeners if necessary
+                    // (Event delegation handles this better, so this might not be needed)
                     return;
                 }
                 return this.templates.playerStatsWrapper(tableRows, column, direction);
@@ -566,14 +578,7 @@
                     playerStatsSort.column = newColumn;
                     playerStatsSort.direction = ['name'].includes(newColumn) ? 'asc' : 'desc';
                 }
-                this.renderPlayerStatsTable(true); // Re-render just the table body
-                
-                // BUG FIX: After re-rendering the table body, the old event listeners on the rows
-                // are destroyed. This re-attaches them specifically to the new rows in the body.
-                // This is safer than re-calling the entire attachEventListeners function.
-                document.querySelectorAll('#player-stats-table-body [data-player-name]').forEach(el => {
-                    el.addEventListener('click', () => this.renderPlayerDetail(el.dataset.playerName));
-                });
+                this.renderPlayerStatsTable(true);
             },
 
             updateHead2Head() {
