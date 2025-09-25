@@ -165,7 +165,7 @@
             </div>
 
             <!-- Content Area -->
-            <main id="content-wrapper" class="transition-all duration-300">
+            <main id="content-wrapper">
                 <div id="main-view">
                     <!-- Tab Content will be injected here -->
                 </div>
@@ -192,6 +192,7 @@
                 playerStatsSort: { column: 'skill', direction: 'desc' },
                 adminSecret: null,
                 showInactive: false,
+                addMatchState: { teamA: [], teamB: [] },
             },
 
             // --- INITIALIZATION ---
@@ -341,7 +342,7 @@
                         matches: this.renderMatches,
                         history: this.renderHistory,
                         guide: () => this.templates.guide(),
-                        admin: () => this.templates.adminWrapper(),
+                        admin: this.renderAdmin,
                     };
                     try {
                         mainView.innerHTML = renderMap[tabName].call(this);
@@ -389,10 +390,11 @@
                     slider?.addEventListener('input', e => this.displayHistoricalLeaderboard(e.target.value));
                 }
                 if (viewName === 'admin') {
-                     document.getElementById('add-match-form')?.addEventListener('submit', e => {
-                        e.preventDefault();
-                        this.addMatch();
-                    });
+                     document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
+                     document.getElementById('player-pool')?.addEventListener('click', e => this.handleAddMatchPlayerClick(e));
+                     document.getElementById('teamA-list')?.addEventListener('click', e => this.handleAddMatchPlayerClick(e));
+                     document.getElementById('teamB-list')?.addEventListener('click', e => this.handleAddMatchPlayerClick(e));
+                     document.getElementById('backup-btn')?.addEventListener('click', () => this.downloadBackup());
                 }
                 if (['leaderboard', 'player_stats'].includes(viewName)) {
                     document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
@@ -485,6 +487,7 @@
                 const playerRecords = [
                     { title: 'Highest Peak Skill', key: 'peakSkill', format: v => v.toFixed(2), color: 'text-amber-300' },
                     { title: 'Most Wins', key: 'wins', color: 'text-green-300' },
+                    { title: 'Most Losses', key: 'losses', color: 'text-red-300' },
                     { title: 'Highest Win Rate', key: 'winRate', format: v => `${parseFloat(v).toFixed(1)}%`, minGames: 5, color: 'text-sky-300' },
                     { title: 'Longest Win Streak', key: 'longestWinStreak', format: v => `${v}W`, color: 'text-rose-300' },
                     { title: 'Most Matches Played', key: 'total', color: 'text-slate-300' },
@@ -508,6 +511,11 @@
                 const maxMatchIndex = historicalLeaderboards.length - 2;
                 setTimeout(() => this.displayHistoricalLeaderboard(maxMatchIndex), 0);
                 return this.templates.historyWrapper(maxMatchIndex);
+            },
+            
+            renderAdmin() {
+                this.state.addMatchState = { teamA: [], teamB: [] };
+                return this.templates.adminWrapper.call(this);
             },
 
             // --- UPDATE & HELPER FUNCTIONS ---
@@ -779,28 +787,53 @@
                 });
             },
 
-            // --- API ACTIONS (POST) ---
+            // --- API ACTIONS & ADMIN HELPERS ---
+            handleAddMatchPlayerClick(e) {
+                const button = e.target.closest('button[data-player]');
+                if (!button) return;
+
+                const player = button.dataset.player;
+                const currentTeam = button.dataset.team;
+
+                if (currentTeam === 'pool') {
+                    // Default to adding to the team with fewer players
+                    if (this.state.addMatchState.teamA.length <= this.state.addMatchState.teamB.length) {
+                        this.state.addMatchState.teamA.push(player);
+                    } else {
+                        this.state.addMatchState.teamB.push(player);
+                    }
+                } else if (currentTeam === 'A') {
+                    this.state.addMatchState.teamA = this.state.addMatchState.teamA.filter(p => p !== player);
+                } else if (currentTeam === 'B') {
+                    this.state.addMatchState.teamB = this.state.addMatchState.teamB.filter(p => p !== player);
+                }
+                
+                this.updateAddMatchView();
+            },
+
+            updateAddMatchView() {
+                document.getElementById('teamA-list').innerHTML = this.templates.addMatchTeamList(this.state.addMatchState.teamA, 'A');
+                document.getElementById('teamB-list').innerHTML = this.templates.addMatchTeamList(this.state.addMatchState.teamB, 'B');
+                document.getElementById('player-pool').innerHTML = this.templates.addMatchPlayerPool.call(this);
+            },
+            
             async addMatch() {
                  if (!this.state.adminSecret) {
                     document.getElementById('add-match-error').textContent = 'Admin secret required.';
                     return;
                 }
                 const form = document.getElementById('add-match-form');
-                const parsePlayers = str => str.split(',').map(p => p.trim()).filter(Boolean);
                 const payload = {
                     secret: this.state.adminSecret,
-                    teamA: parsePlayers(form.elements.teamA.value),
-                    teamB: parsePlayers(form.elements.teamB.value),
+                    teamA: this.state.addMatchState.teamA,
+                    teamB: this.state.addMatchState.teamB,
                     scoreA: parseInt(form.elements.scoreA.value),
                     scoreB: parseInt(form.elements.scoreB.value),
                     ts: Date.now()
                 };
                 const errorDiv = document.getElementById('add-match-error');
                 if (payload.teamA.length === 0 || payload.teamB.length === 0 || isNaN(payload.scoreA) || isNaN(payload.scoreB)) {
-                    errorDiv.textContent = 'Please fill all fields correctly.'; return;
-                }
-                 if(new Set([...payload.teamA, ...payload.teamB]).size !== payload.teamA.length + payload.teamB.length) {
-                    errorDiv.textContent = "A player cannot be on both teams."; return;
+                    errorDiv.textContent = 'Please form teams and enter scores.'; return;
                 }
                 try {
                     const response = await fetch('/api/add_match', {
@@ -809,12 +842,24 @@
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error || 'Server error');
                     form.reset();
+                    this.state.addMatchState = { teamA: [], teamB: [] };
+                    this.updateAddMatchView();
                     errorDiv.textContent = '';
                     await this.fetchData(false);
                     this.activateTab('leaderboard');
                 } catch (error) {
                     errorDiv.textContent = error.message;
                 }
+            },
+            
+            downloadBackup() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.data, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `volley-stats-backup-${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
             },
 
             // --- HTML TEMPLATES ---
@@ -922,7 +967,15 @@
                 },
                 recordsWrapper: function(duos, rivalries, superlatives, matches, playerStats, playerRecords) {
                     const recordListTemplate = (record) => {
-                        const topPlayers = Object.values(playerStats).filter(p => !record.minGames || p.total >= record.minGames).sort((a,b) => b[record.key] - a[record.key]).slice(0, 5);
+                        const topPlayers = Object.values(playerStats)
+                            .filter(p => !record.minGames || p.total >= record.minGames)
+                            .sort((a,b) => {
+                                const valA = record.key === 'losses' ? -a[record.key] : a[record.key];
+                                const valB = record.key === 'losses' ? -b[record.key] : b[record.key];
+                                return valB - valA;
+                            })
+                            .slice(0, 5);
+
                         let listHtml = ''; let lastValue = null; let rank = 0;
                         topPlayers.forEach((p, i) => {
                             const value = p[record.key];
@@ -960,6 +1013,7 @@
                     <div class="glass-card p-4 hover:border-slate-600 transition cursor-pointer" data-match-id="${matchId}">
                         <div class="flex justify-between items-start mb-2">
                             <div>
+                                 <p class="text-xs text-slate-500 font-bold">MATCH #${matchId + 1}</p>
                                 <p class="font-extrabold text-2xl tracking-tight">${match.scoreA} - ${match.scoreB}</p>
                                 <p class="text-xs text-slate-500">${new Date(match.ts).toLocaleDateString()}</p>
                             </div>
@@ -991,7 +1045,46 @@
                         </div>
                     </li>`
                 },
-                adminWrapper: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Add a New Match</h2><form id="add-match-form" class="space-y-4">${['A','B'].map(t => `<div><label class="block font-medium mb-1 text-slate-300">Team ${t}</label><textarea name="team${t}" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea></div>`).join('')}<div class="grid grid-cols-2 gap-4"><div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div><div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div></div><button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button><div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4"></div></form></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Documentation</h2><div class="space-y-4 text-sm text-slate-300"><p>This application communicates with a Python Flask backend.</p><p><strong>Read-Only Mode:</strong> View all stats without an admin secret.</p><p><strong>Admin Mode:</strong> Provide the secret to enable adding matches and editing player details. The secret is defined in the <code class="bg-slate-800/50 px-1 py-0.5 rounded">app.py</code> backend file.</p><p>Player data can be edited from their individual detail pages when in Admin Mode.</p></div></div></div>`,
+                adminWrapper: function() {
+                    return `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="glass-card p-6">
+                            <h2 class="text-2xl font-bold mb-4">Add a New Match</h2>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div id="teamA-list" class="bg-slate-800/50 p-3 rounded-lg min-h-[100px] border border-dashed border-sky-500/50"></div>
+                                <div id="teamB-list" class="bg-slate-800/50 p-3 rounded-lg min-h-[100px] border border-dashed border-rose-500/50"></div>
+                            </div>
+                            <div id="player-pool" class="mb-4 bg-slate-900/50 p-3 rounded-lg max-h-48 overflow-y-auto"></div>
+                            <form id="add-match-form">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
+                                    <div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
+                                </div>
+                                <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition mt-4">Record Match</button>
+                                <div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4 mt-2"></div>
+                            </form>
+                        </div>
+                        <div class="glass-card p-6">
+                            <h2 class="text-2xl font-bold mb-4">Admin Tools</h2>
+                            <div class="space-y-4 text-sm text-slate-300">
+                               <p>Click on an available player to add them to a team. Click a player on a team to move them back to the pool.</p>
+                                <button id="backup-btn" class="w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Download Full Backup</button>
+                            </div>
+                        </div>
+                    </div>`
+                },
+                addMatchTeamList: (team, teamName) => {
+                    const header = `<h3 class="font-bold mb-2 text-center">Team ${teamName}</h3>`;
+                    if (team.length === 0) return `${header}<p class="text-xs text-slate-500 text-center">Click players from the pool below to add them.</p>`;
+                    return header + team.map(p => `<button data-player="${p}" data-team="${teamName}" class="w-full text-left bg-slate-700/50 p-2 rounded-md mb-2 hover:bg-slate-700 transition">${p}</button>`).join('');
+                },
+                addMatchPlayerPool: function() {
+                    const allPlayers = Object.keys(this.state.data.playerStats).sort();
+                    const assignedPlayers = new Set([...this.state.addMatchState.teamA, ...this.state.addMatchState.teamB]);
+                    const availablePlayers = allPlayers.filter(p => !assignedPlayers.has(p));
+                    if(availablePlayers.length === 0) return `<p class="text-xs text-slate-500 text-center">All players assigned.</p>`;
+                    return `<div class="flex flex-wrap gap-2">${availablePlayers.map(p => `<button data-player="${p}" data-team="pool" class="glass-button text-sm px-3 py-1 rounded-full">${p}</button>`).join('')}</div>`;
+                },
                 playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `<div class="glass-card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-start mb-4"><button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to ${originTab.replace('_', ' ')}</button><button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button></div><div class="flex flex-wrap items-center gap-4 mb-6"><h2 class="text-3xl font-bold">${displayName}</h2><span class="rank-badge ${rank.class}">${rank.name}</span></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">${Object.entries({Skill: stats.skill.toFixed(2),"Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},"Win Rate": `${stats.winRate}%`,Record: `${stats.wins}-${stats.losses}`,"Best Streak": `${stats.longestWinStreak}W`,"Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}}).map(([label, data]) => {const value = typeof data === 'object' ? data.value : data; const glowClass = data.glow ? 'peak-skill-glow' : ''; const colorClass = data.color || ''; return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-slate-400 uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`}).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div><h3 class="text-xl font-semibold mb-2">Skill History</h3><div class="h-64"><canvas id="elo-chart"></canvas></div></div><div><h3 class="text-xl font-semibold mb-2">Recent Matches</h3><div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div></div></div></div>`,
                 playerMatchHistoryRow: (match, matchId, won, skillChange) => `<div data-match-id="${matchId}" class="bg-slate-800/50 p-3 rounded-md flex justify-between items-center hover:bg-slate-800/80 cursor-pointer transition"><div><p class="text-sm font-semibold">${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="text-xs text-slate-400">${new Date(match.ts).toLocaleDateString()}</p></div><div class="text-right"><p class="font-bold text-lg">${match.scoreA}-${match.scoreB}</p><div class="flex items-center justify-end gap-2"><span class="text-xs font-bold ${won ? 'text-green-400' : 'text-red-400'}">${won ? 'WIN' : 'LOSS'}</span><span class="text-xs font-semibold ${skillChange >= 0 ? 'text-green-400' : 'text-red-400'}">${skillChange >= 0 ? '+' : ''}${skillChange.toFixed(2)}</span></div></div></div>`,
                 matchModal: (match, teamAChanges, teamBChanges, winProbA, matchId) => {
