@@ -182,7 +182,6 @@
 
             <!-- Tabs -->
             <div class="mb-6 border-b border-slate-700/50">
-                <!-- Mobile Friendliness Fix: Changed flex-wrap to flex-nowrap and added overflow-x-auto for better scrolling on small screens -->
                 <nav id="tabs" class="flex flex-nowrap overflow-x-auto -mb-px text-sm font-medium">
                     <a href="#" data-tab="leaderboard" class="tab py-4 px-3 md:px-4 border-b-2 border-transparent">Leaderboard</a>
                     <a href="#" data-tab="player_stats" class="tab py-4 px-3 md:px-4 border-b-2 border-transparent">Player Stats</a>
@@ -388,6 +387,20 @@
             },
 
             renderPlayerDetail(playerName) {
+                // BUG FIX: Added a guard clause to prevent the app from crashing if it tries to
+                // render a profile for a player that doesn't exist in the data. This prevents the
+                // blank screen issue by showing a clear error message instead.
+                if (!this.state.data.playerStats[playerName]) {
+                    console.error(`Player not found in stats object: ${playerName}`);
+                    const mainView = document.getElementById('main-view');
+                    mainView.innerHTML = this.templates.error(`Could not find data for player "${playerName}".`);
+                    // Ensure the main view is visible to show the error
+                    mainView.classList.remove('hidden');
+                    document.getElementById('detail-view').classList.add('hidden');
+                    lucide.createIcons();
+                    return;
+                }
+
                 document.getElementById('main-view').classList.add('hidden');
                 const detailView = document.getElementById('detail-view');
                 detailView.classList.remove('hidden');
@@ -545,22 +558,22 @@
             },
 
             // --- UPDATE & HELPER FUNCTIONS ---
-            // BUG FIX: Replaced the faulty listener re-attachment logic.
-            // Instead of duplicating code, this now calls the main attachEventListeners function.
-            // This ensures that ALL necessary listeners (for rows and headers) are properly
-            // re-attached after the table body is re-rendered during a sort.
             sortPlayerStats(newColumn) {
                 const { playerStatsSort } = this.state;
                 if (playerStatsSort.column === newColumn) {
                     playerStatsSort.direction = playerStatsSort.direction === 'asc' ? 'desc' : 'asc';
                 } else {
                     playerStatsSort.column = newColumn;
-                    // Default to ascending for names, descending for all other (mostly numerical) columns
                     playerStatsSort.direction = ['name'].includes(newColumn) ? 'asc' : 'desc';
                 }
                 this.renderPlayerStatsTable(true); // Re-render just the table body
-                // After re-rendering, re-attach ALL listeners for the player_stats view
-                this.attachEventListeners('player_stats');
+                
+                // BUG FIX: After re-rendering the table body, the old event listeners on the rows
+                // are destroyed. This re-attaches them specifically to the new rows in the body.
+                // This is safer than re-calling the entire attachEventListeners function.
+                document.querySelectorAll('#player-stats-table-body [data-player-name]').forEach(el => {
+                    el.addEventListener('click', () => this.renderPlayerDetail(el.dataset.playerName));
+                });
             },
 
             updateHead2Head() {
@@ -1135,3 +1148,4 @@
     </script>
 </body>
 </html>
+
