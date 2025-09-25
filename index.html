@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Volley Pro Stats</title>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <!-- Lucide Icons for a clean icon set -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Google Fonts for typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -70,7 +74,7 @@
         }
 
         /* --- Custom Scrollbar --- */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
         ::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.3); }
@@ -85,7 +89,6 @@
         .rank-bronze { background-color: #fdba74; color: #7c2d12; }
 
         /* --- Other utility styles --- */
-        .h2h-better { background-color: rgba(16, 185, 129, 0.1); }
         .position-change-up { color: #34d399; }
         .position-change-down { color: #f87171; }
         .sortable-header { cursor: pointer; user-select: none; }
@@ -109,6 +112,7 @@
 
     <div id="app" class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
 
+        <!-- Splash Screen for Admin Secret -->
         <div id="secret-screen" class="min-h-[80vh] flex items-center justify-center">
             <div class="glass-card p-8 w-full max-w-md text-center">
                 <i data-lucide="shield-check" class="mx-auto h-12 w-12 text-violet-400 mb-4"></i>
@@ -122,6 +126,7 @@
             </div>
         </div>
 
+        <!-- Main Application (Initially hidden) -->
         <div id="main-app" class="hidden">
             <header class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8">
                 <div class="text-center md:text-left mb-4 md:mb-0">
@@ -129,9 +134,11 @@
                     <p class="text-slate-400">The ultimate tool for volleyball analytics</p>
                 </div>
                 <div id="admin-status" class="flex items-center gap-2 text-sm glass-card px-3 py-2">
-                    </div>
+                    <!-- Status will be injected here -->
+                </div>
             </header>
 
+            <!-- Tabs -->
             <div class="mb-6 border-b border-slate-700/50">
                 <nav id="tabs" class="flex flex-wrap -mb-px text-sm font-medium">
                     <a href="#" data-tab="leaderboard" class="tab py-4 px-3 md:px-4 border-b-2 border-transparent">Leaderboard</a>
@@ -145,17 +152,22 @@
                 </nav>
             </div>
 
+            <!-- Content Area -->
             <main id="content-wrapper" class="transition-all duration-300">
                 <div id="main-view">
-                    </div>
+                    <!-- Tab Content will be injected here -->
+                </div>
                 <div id="detail-view" class="hidden">
-                    </div>
+                    <!-- Player/Match details will be injected here -->
+                </div>
             </main>
         </div>
 
+        <!-- Generic Modal -->
         <div id="modal-backdrop" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-4 z-50">
             <div id="modal-content" class="glass-card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                </div>
+                <!-- Modal content will be injected here -->
+            </div>
         </div>
 
     </div>
@@ -198,10 +210,8 @@
             },
 
             setupTabListener() {
-                // This listener only handles tab clicks. All other events are attached dynamically.
                 document.getElementById('tabs').addEventListener('click', (e) => {
                     e.preventDefault();
-                    // Use .closest() to ensure the click works even on child elements of the link
                     const tabLink = e.target.closest('[data-tab]');
                     if (tabLink) {
                         this.activateTab(tabLink.dataset.tab);
@@ -219,11 +229,8 @@
                     const response = await fetch('/api/data');
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     this.state.data = await response.json();
-
-                    // Post-process data to add extra stats client-side
                     this.processData();
-
-                    this.activateTab(this.state.activeTab, true); // Force re-render with new data
+                    this.activateTab(this.state.activeTab, true);
                 } catch (error) {
                     console.error("Failed to fetch data:", error);
                     mainView.innerHTML = this.templates.error('Could not load data from the server. Please ensure the backend is running and refresh the page.');
@@ -233,28 +240,15 @@
             // --- CLIENT-SIDE DATA PROCESSING ---
             processData() {
                 const { playerStats, history, matches } = this.state.data;
-
-                // Use the conservative skill estimate for a better rank spread
                 for(const name in playerStats) {
                     playerStats[name].skill = playerStats[name].mu - 3 * playerStats[name].sigma;
-                }
-
-                // Recalculate leaderboard
-                this.state.data.leaderboard = Object.values(playerStats)
-                    .sort((a,b) => b.skill - a.skill)
-                    .map(p => ({ name: p.name, skill: p.skill, change: p.change })); // Carry over change property
-
-                // Calculate extended stats for each player
-                for(const name in playerStats) {
                     const pHistory = history[name];
                     const skillHistory = pHistory.map(h => h.mu - 3 * h.sigma);
-
                     playerStats[name].peakSkill = Math.max(...skillHistory);
 
                     let currentStreak = 0;
                     let streakType = '';
                     if (pHistory.length > 1) {
-                         // A win is an increase in mu
                         streakType = pHistory[pHistory.length-1].mu > pHistory[pHistory.length-2].mu ? 'W' : 'L';
                         for(let i = pHistory.length - 1; i > 0; i--) {
                             const currentMu = pHistory[i].mu;
@@ -268,10 +262,9 @@
                     }
                     playerStats[name].currentStreak = { count: currentStreak, type: streakType };
 
-                    // Clutch stats
                     let clutchWins = 0, clutchAttempts = 0;
                     matches.forEach(m => {
-                        if ( (m.teamA.includes(name) || m.teamB.includes(name)) && Math.abs(m.scoreA - m.scoreB) === 1) {
+                        if ( (m.teamA.includes(name) || m.teamB.includes(name)) && Math.abs(m.scoreA - m.scoreB) <= 2 && Math.max(m.scoreA, m.scoreB) >=14) {
                             clutchAttempts++;
                             const won = (m.teamA.includes(name) && m.scoreA > m.scoreB) || (m.teamB.includes(name) && m.scoreB > m.scoreA);
                             if (won) clutchWins++;
@@ -279,7 +272,6 @@
                     });
                     playerStats[name].clutchRate = clutchAttempts > 0 ? (clutchWins / clutchAttempts * 100) : 0;
 
-                    // Skill change over last 10 games
                     const muHistory = pHistory.map(h => h.mu);
                     if (muHistory.length > 10) {
                         playerStats[name].skillChangeLast10 = muHistory[muHistory.length-1] - muHistory[muHistory.length-11];
@@ -289,37 +281,30 @@
                          playerStats[name].skillChangeLast10 = 0;
                     }
                 }
-
-                // Calculate match superlatives
-                this.calculateSuperlatives();
+                this.calculateClientSideSuperlatives();
             },
 
-            calculateSuperlatives() {
+            calculateClientSideSuperlatives() {
                 const { matches, history } = this.state.data;
                 let superlatives = {
                     highCaliber: { avgSkill: 0 },
                 };
-
                 matches.forEach((m, i) => {
-                    const getPreMatchSkill = (player, matchIndex) => {
+                    const getPreMatchSkill = (player) => {
                         const pHist = history[player];
                         for (let j = pHist.length - 1; j >= 0; j--) {
-                            if (pHist[j].match_id < matchIndex) {
+                            if (pHist[j].match_id < i) {
                                 return pHist[j].mu - 3 * pHist[j].sigma;
                             }
                         }
-                        return 0; // Default start skill
+                        return 0;
                     };
-
-                    const avgSkillA = m.teamA.reduce((sum, p) => sum + getPreMatchSkill(p, i), 0) / m.teamA.length;
-                    const avgSkillB = m.teamB.reduce((sum, p) => sum + getPreMatchSkill(p, i), 0) / m.teamB.length;
-
+                    const avgSkillA = m.teamA.reduce((sum, p) => sum + getPreMatchSkill(p), 0) / m.teamA.length;
+                    const avgSkillB = m.teamB.reduce((sum, p) => sum + getPreMatchSkill(p), 0) / m.teamB.length;
                     if ((avgSkillA + avgSkillB) / 2 > superlatives.highCaliber.avgSkill) {
                         superlatives.highCaliber = { avgSkill: (avgSkillA + avgSkillB) / 2, match_id: i };
                     }
                 });
-
-                // Merge with backend superlatives
                 this.state.data.superlatives = { ...this.state.data.superlatives, ...superlatives };
             },
 
@@ -350,14 +335,12 @@
                         mainView.innerHTML = renderMap[tabName].call(this);
                         mainView.dataset.renderedTab = tabName;
                         this.attachEventListeners(tabName);
+                        lucide.createIcons();
                     } catch (error) {
                          console.error(`Failed to render tab "${tabName}":`, error);
                          mainView.innerHTML = this.templates.error(`An error occurred while rendering this tab. Check the console for details.`);
+                         lucide.createIcons();
                     }
-
-                    try {
-                        lucide.createIcons();
-                    } catch(e) { console.error("Lucide icons failed to render.", e); }
                 }
             },
 
@@ -365,31 +348,20 @@
                 document.getElementById('main-view').classList.add('hidden');
                 const detailView = document.getElementById('detail-view');
                 detailView.classList.remove('hidden');
-
                 const stats = this.state.data.playerStats[playerName];
                 const details = this.state.data.playerDetails[playerName] || {};
                 const rank = this.getRankInfo(stats.skill);
                 const isPeak = stats.skill.toFixed(2) >= stats.peakSkill.toFixed(2);
-
                 const displayName = `${stats.name} ${details.lastName || ''} ${details.number ? `#${details.number}`: ''}`.trim();
-
                 const recentMatchesHtml = this.renderPlayerMatchHistory(playerName);
-
                 detailView.innerHTML = this.templates.playerDetail(playerName, displayName, stats, rank, isPeak, this.state.activeTab, recentMatchesHtml);
-
                 this.renderEloChart(playerName);
                 this.attachEventListeners('playerDetail');
-                try {
-                    lucide.createIcons();
-                } catch(e) { console.error("Lucide icons failed to render.", e); }
+                lucide.createIcons();
             },
 
             // --- EVENT LISTENER ATTACHMENT ---
             attachEventListeners(viewName) {
-                // This function attaches ALL event listeners for a given view AFTER it has been rendered.
-                // This is a more robust pattern than delegation for this app's structure.
-
-                // --- Non-Click Handlers ---
                 if (viewName === 'leaderboard') {
                     document.getElementById('toggle-inactive')?.addEventListener('change', e => {
                         this.state.showInactive = e.target.checked;
@@ -410,8 +382,6 @@
                         this.addMatch();
                     });
                 }
-
-                // --- Click Handlers ---
                 if (['leaderboard', 'player_stats'].includes(viewName)) {
                     document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
                         el.addEventListener('click', () => this.renderPlayerDetail(el.dataset.playerName));
@@ -437,7 +407,6 @@
             renderLeaderboard() {
                 const { leaderboard, playerStats, totalMatches, playerDetails } = this.state.data;
                 const inactiveThreshold = 15;
-
                 let playersToDisplay = this.state.showInactive
                     ? leaderboard
                     : leaderboard.filter(p => (totalMatches - 1 - playerStats[p.name].last_played) < inactiveThreshold);
@@ -455,14 +424,12 @@
                     const isInactive = (totalMatches - 1 - stats.last_played) >= inactiveThreshold;
                     const details = playerDetails[player.name] || {};
                     const displayName = `${player.name} ${details.abbrev ? `(${details.abbrev})` : ''}`;
-                    listHtml += this.templates.leaderboardRow(player, displayName, rank, rankInfo, isInactive);
+                    listHtml += this.templates.leaderboardRow(player, displayName, rank, rankInfo, isInactive, playerStats[player.name].change);
                 });
-
 
                 if (playersToDisplay.length === 0) {
                     listHtml = `<li class="text-center py-8 text-slate-400">No active players found. Try showing inactive players.</li>`;
                 }
-
                 return this.templates.leaderboardWrapper(listHtml, this.state.showInactive);
             },
 
@@ -475,19 +442,16 @@
                     if (column === 'winRate') { valA = parseFloat(a.winRate); valB = parseFloat(b.winRate); }
                     else if (column === 'name') { return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA); }
                     else if (column === 'currentStreak') { valA = a.currentStreak.type === 'W' ? a.currentStreak.count : -a.currentStreak.count; valB = b.currentStreak.type === 'W' ? b.currentStreak.count : -b.currentStreak.count; }
-
                     valA = parseFloat(valA) || -Infinity; valB = parseFloat(valB) || -Infinity;
-
                     if (valA < valB) return direction === 'asc' ? -1 : 1;
                     if (valA > valB) return direction === 'asc' ? 1 : -1;
-                    return a.name.localeCompare(b.name); // Secondary sort
+                    return a.name.localeCompare(b.name);
                 });
 
                 const tableRows = stats.map(p => this.templates.playerStatsRow(p, this.getWinRateColor(p.winRate))).join('');
 
                 if (justBody) {
                     document.getElementById('player-stats-table-body').innerHTML = tableRows;
-                    // Update headers to show sort direction
                     document.querySelectorAll('#player-stats-table-head .sortable-header').forEach(el => {
                         el.classList.remove('sort-asc', 'sort-desc');
                         if (el.dataset.sortBy === column) {
@@ -496,7 +460,6 @@
                     });
                     return;
                 }
-
                 return this.templates.playerStatsWrapper(tableRows, column, direction);
             },
 
@@ -531,17 +494,12 @@
                 const { historicalLeaderboards } = this.state.data;
                 if(historicalLeaderboards.length < 2) return this.templates.noHistory();
                 const maxMatchIndex = historicalLeaderboards.length - 2;
-                setTimeout(() => this.displayHistoricalLeaderboard(maxMatchIndex), 0); // Render after DOM update
+                setTimeout(() => this.displayHistoricalLeaderboard(maxMatchIndex), 0);
                 return this.templates.historyWrapper(maxMatchIndex);
             },
 
-            renderGuide() {
-                return this.templates.guide();
-            },
-
-            renderAdmin() {
-                 return this.templates.adminWrapper();
-            },
+            renderGuide: () => this.templates.guide(),
+            renderAdmin: () => this.templates.adminWrapper(),
 
             // --- UPDATE & HELPER FUNCTIONS ---
             sortPlayerStats(newColumn) {
@@ -552,7 +510,7 @@
                     playerStatsSort.column = newColumn;
                     playerStatsSort.direction = ['name'].includes(newColumn) ? 'asc' : 'desc';
                 }
-                this.renderPlayerStatsTable(true); // Re-render only the table body
+                this.renderPlayerStatsTable(true);
             },
 
             updateHead2Head() {
@@ -563,15 +521,13 @@
                     resultsDiv.innerHTML = '<p class="text-center text-slate-400 mt-8">Select two different players to compare.</p>';
                     return;
                 }
-
                 const stats1 = this.state.data.playerStats[p1Name];
                 const stats2 = this.state.data.playerStats[p2Name];
-
                 let p1Wins = 0, p2Wins = 0, total = 0;
                 this.state.data.matches.forEach(m => {
                     const p1OnA = m.teamA.includes(p1Name), p1OnB = m.teamB.includes(p1Name);
                     const p2OnA = m.teamA.includes(p2Name), p2OnB = m.teamB.includes(p2Name);
-                    if((p1OnA && p2OnB) || (p1OnB && p2OnA)) { // Opponents
+                    if((p1OnA && p2OnB) || (p1OnB && p2OnA)) {
                         total++;
                         const aWon = m.scoreA > m.scoreB;
                         if ((p1OnA && aWon) || (p1OnB && !aWon)) p1Wins++;
@@ -588,39 +544,28 @@
                 if (!snapshot) return;
 
                 label.textContent = `After Match ${snapshot.match_id + 1}`;
-
                 let html = '';
                 let lastSkill = -9999;
                 let rank = 0;
                 snapshot.leaderboard.forEach((player, index) => {
-                    if (player.skill.toFixed(2) !== lastSkill.toFixed(2)) {
-                        rank = index + 1;
-                    }
+                    if (player.skill.toFixed(2) !== lastSkill.toFixed(2)) { rank = index + 1; }
                     lastSkill = player.skill;
                     const rankInfo = this.getRankInfo(player.skill);
                     html += this.templates.historicalLeaderboardRow(player, rank, rankInfo);
                 });
 
-
                 display.innerHTML = `<ul class="space-y-2">${html}</ul>`;
+                lucide.createIcons();
             },
 
             renderEloChart(playerName) {
                 const ctx = document.getElementById('elo-chart')?.getContext('2d');
                 if (!ctx) return;
-
                 const fullHistory = this.state.data.history[playerName];
                 const skillData = fullHistory.map(h => h.mu - 3 * h.sigma);
-
                 if (window.eloChartInstance) window.eloChartInstance.destroy();
 
-                const rankThresholds = {
-                    Master: 25, Diamond: 20, Platinum: 15, Gold: 10, Silver: 5
-                };
-
-                const yMin = Math.min(...skillData) - 5;
-                const yMax = Math.max(...skillData) + 5;
-
+                const rankThresholds = { Master: 25, Diamond: 20, Platinum: 15, Gold: 10, Silver: 5 };
                 const annotations = {};
                 Object.entries(rankThresholds).forEach(([rank, skill]) => {
                      annotations[`line-${rank}`] = {
@@ -639,14 +584,8 @@
                     data: {
                         labels: fullHistory.map((h,i) => h.match_id === -1 ? 'Start' : `Match ${h.match_id + 1}`),
                         datasets: [{
-                            data: skillData,
-                            fill: true,
-                            tension: 0,
-                            pointRadius: 2,
-                            pointHoverRadius: 6,
-                            segment: {
-                                borderColor: ctx => this.getRankInfo(ctx.p1.raw)?.color || '#cbd5e1'
-                            },
+                            data: skillData, fill: true, tension: 0.1, pointRadius: 2, pointHoverRadius: 6,
+                            segment: { borderColor: ctx => this.getRankInfo(ctx.p1.raw)?.color || '#cbd5e1' },
                             backgroundColor: 'rgba(139, 92, 246, 0.1)',
                         }]
                     },
@@ -654,25 +593,22 @@
                         maintainAspectRatio: false,
                         scales: {
                             x: { display: false },
-                            y: { min: yMin, max: yMax, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                            y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
                         },
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
+                        interaction: { mode: 'index', intersect: false },
                         plugins: {
                             legend: { display: false },
                             annotation: { annotations },
                             tooltip: {
                                 callbacks: {
-                                    title: (c) => `After ${c[0].label}`,
-                                    label: (c) => {
+                                    title: c => `After ${c[0].label}`,
+                                    label: c => {
                                         const currentSkill = c.raw;
                                         const prevSkill = skillData[c.dataIndex - 1] || skillData[0];
                                         const change = currentSkill - prevSkill;
                                         return `Skill: ${currentSkill.toFixed(2)} (${change >= 0 ? '+' : ''}${change.toFixed(2)})`;
                                     },
-                                    afterLabel: (c) => {
+                                    afterLabel: c => {
                                         const matchId = fullHistory[c.dataIndex].match_id;
                                         if (matchId === -1) return 'Initial Rating';
                                         const match = this.state.data.matches[matchId];
@@ -689,11 +625,9 @@
 
             renderAdminStatus() {
                 const statusDiv = document.getElementById('admin-status');
-                if (this.state.adminSecret) {
-                    statusDiv.innerHTML = `<i data-lucide="shield-check" class="h-4 w-4 text-green-400"></i><span class="text-green-400">Admin Mode</span>`;
-                } else {
-                    statusDiv.innerHTML = `<i data-lucide="eye" class="h-4 w-4 text-slate-400"></i><span class="text-slate-400">Read-Only Mode</span>`;
-                }
+                statusDiv.innerHTML = this.state.adminSecret
+                    ? `<i data-lucide="shield-check" class="h-4 w-4 text-green-400"></i><span class="text-green-400">Admin Mode</span>`
+                    : `<i data-lucide="eye" class="h-4 w-4 text-slate-400"></i><span class="text-slate-400">Read-Only Mode</span>`;
                 lucide.createIcons();
             },
 
@@ -719,7 +653,6 @@
             renderPlayerMatchHistory(playerName) {
                 const { matches, history } = this.state.data;
                 const playerMatchIds = history[playerName].slice(1).map(h => h.match_id);
-
                 return playerMatchIds.slice(-10).reverse().map(matchId => {
                     const match = matches[matchId];
                     const playerHistory = history[playerName];
@@ -728,10 +661,8 @@
                     const preSkill = playerHistory[historyIndex-1].mu - 3 * playerHistory[historyIndex-1].sigma;
                     const postSkill = historyEntry.mu - 3 * historyEntry.sigma;
                     const skillChange = postSkill - preSkill;
-
                     const isTeamA = match.teamA.includes(playerName);
                     const won = (isTeamA && match.scoreA > match.scoreB) || (!isTeamA && match.scoreB > match.scoreA);
-
                     return this.templates.playerMatchHistoryRow(match, matchId, won, skillChange);
                 }).join('');
             },
@@ -761,17 +692,16 @@
                 const match = this.state.data.matches[matchId];
                 const { history } = this.state.data;
 
-                // --- Win Probability Calculation ---
-                const erf = (x) => { /* Approximation of the error function */ const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;const sign=x<0?-1:1;x=Math.abs(x);const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));return sign*y; };
-
-                const getPreMatchRating = (player, matchIndex) => {
-                    const pHist = history[player];
-                    for (let j = pHist.length - 1; j >= 0; j--) { if (pHist[j].match_id < matchIndex) return pHist[j]; }
-                    return { mu: 25.0, sigma: 25.0/3.0 }; // Default
+                const erf = x => { const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;const sign=x<0?-1:1;x=Math.abs(x);const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));return sign*y; };
+                const getPreMatchRating = (player) => {
+                    for (let j = history[player].length - 1; j >= 0; j--) {
+                        if (history[player][j].match_id < matchId) return history[player][j];
+                    }
+                    return { mu: 25.0, sigma: 25.0/3.0 };
                 };
 
-                const teamARatings = match.teamA.map(p => getPreMatchRating(p, matchId));
-                const teamBRatings = match.teamB.map(p => getPreMatchRating(p, matchId));
+                const teamARatings = match.teamA.map(p => getPreMatchRating(p));
+                const teamBRatings = match.teamB.map(p => getPreMatchRating(p));
 
                 const deltaMu = teamARatings.reduce((s,r)=>s+r.mu,0) - teamBRatings.reduce((s,r)=>s+r.mu,0);
                 const sumSigmaSq = [...teamARatings, ...teamBRatings].reduce((s,r)=>s+r.sigma**2,0);
@@ -780,13 +710,13 @@
                 const winProbA = 0.5 * (1 + erf(deltaMu / (Math.sqrt(2) * denom)));
 
                 const getPlayerChange = (player) => {
-                    const playerHistory = history[player];
-                    const historyEntry = playerHistory.find(h => h.match_id == matchId);
-                    const historyIndex = playerHistory.indexOf(historyEntry);
-                    if (historyIndex < 1) return { name: player, change: 'N/A', skill: 'N/A'};
-                    const pre = playerHistory[historyIndex-1];
+                    const pHist = history[player];
+                    const hEntry = pHist.find(h => h.match_id == matchId);
+                    const hIndex = pHist.indexOf(hEntry);
+                    if (hIndex < 1) return { name: player, change: 'N/A', skill: 'N/A'};
+                    const pre = pHist[hIndex-1];
                     const preSkill = pre.mu - 3 * pre.sigma;
-                    const postSkill = historyEntry.mu - 3 * historyEntry.sigma;
+                    const postSkill = hEntry.mu - 3 * hEntry.sigma;
                     const change = postSkill - preSkill;
                     return { name: player, change: change.toFixed(2), skill: postSkill.toFixed(2) };
                 };
@@ -829,7 +759,6 @@
                         if (!response.ok) throw new Error(result.error || 'Server error');
                         this.closeModal();
                         await this.fetchData();
-                        // If name changed, need to show new player detail page
                         this.renderPlayerDetail(payload.newName);
                     } catch (error) {
                         document.getElementById('edit-player-error').textContent = error.message;
@@ -844,8 +773,7 @@
                     return;
                 }
                 const form = document.getElementById('add-match-form');
-                const parsePlayers = (str) => str.split(',').map(p => p.trim()).filter(Boolean);
-
+                const parsePlayers = str => str.split(',').map(p => p.trim()).filter(Boolean);
                 const payload = {
                     secret: this.state.adminSecret,
                     teamA: parsePlayers(form.elements.teamA.value),
@@ -854,27 +782,22 @@
                     scoreB: parseInt(form.elements.scoreB.value),
                     ts: Date.now()
                 };
-
                 const errorDiv = document.getElementById('add-match-error');
                 if (payload.teamA.length === 0 || payload.teamB.length === 0 || isNaN(payload.scoreA) || isNaN(payload.scoreB)) {
-                    errorDiv.textContent = 'Please fill all fields correctly.';
-                    return;
+                    errorDiv.textContent = 'Please fill all fields correctly.'; return;
                 }
                  if(new Set([...payload.teamA, ...payload.teamB]).size !== payload.teamA.length + payload.teamB.length) {
                     errorDiv.textContent = "A player cannot be on both teams."; return;
                 }
-
                 try {
                     const response = await fetch('/api/add_match', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                     });
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error || 'Server error');
                     form.reset();
                     errorDiv.textContent = '';
-                    await this.fetchData(false); // fetch without showing main loader
+                    await this.fetchData(false);
                     this.activateTab('leaderboard');
                 } catch (error) {
                     errorDiv.textContent = error.message;
@@ -883,36 +806,18 @@
 
             // --- HTML TEMPLATES ---
             templates: {
-                loader: (message) => `<div class="text-center py-20"><div class="mx-auto h-12 w-12 border-4 border-t-violet-500 border-slate-600 rounded-full animate-spin"></div><p class="mt-4 text-slate-400">${message}</p></div>`,
-                error: (message) => `<div class="glass-card p-8 text-center"><i data-lucide="alert-triangle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">An Error Occurred</h3><p class="text-slate-400 mt-2">${message}</p></div>`,
-                errorModal: (message) => `
-                    <div class="text-center">
-                        <i data-lucide="shield-off" class="h-12 w-12 mx-auto text-red-400 mb-4"></i>
-                        <h3 class="text-xl font-bold">Permission Denied</h3>
-                        <p class="text-slate-400 mt-2">${message}</p>
-                        <button class="close-modal-btn mt-6 glass-button rounded-md py-2 px-6 font-semibold">Close</button>
-                    </div>`,
-                leaderboardWrapper: (listHtml, showInactiveChecked) => `
-                    <div class="fade-in">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-2xl font-bold">Player Leaderboard</h2>
-                            <label class="flex items-center text-sm cursor-pointer text-slate-300">
-                                <input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>
-                                Show Inactive
-                            </label>
-                        </div>
-                        <div class="glass-card">
-                            <ul id="leaderboard-list">${listHtml}</ul>
-                        </div>
-                    </div>`,
-                leaderboardRow: (player, displayName, rank, rankInfo, isInactive) => {
+                loader: message => `<div class="text-center py-20"><div class="mx-auto h-12 w-12 border-4 border-t-violet-500 border-slate-600 rounded-full animate-spin"></div><p class="mt-4 text-slate-400">${message}</p></div>`,
+                error: message => `<div class="glass-card p-8 text-center"><i data-lucide="alert-triangle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">An Error Occurred</h3><p class="text-slate-400 mt-2">${message}</p></div>`,
+                errorModal: message => `<div class="text-center"><i data-lucide="shield-off" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">Permission Denied</h3><p class="text-slate-400 mt-2">${message}</p><button class="close-modal-btn mt-6 glass-button rounded-md py-2 px-6 font-semibold">Close</button></div>`,
+                leaderboardWrapper: (listHtml, showInactiveChecked) => `<div class="fade-in"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Player Leaderboard</h2><label class="flex items-center text-sm cursor-pointer text-slate-300"><input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>Show Inactive</label></div><div class="glass-card"><ul id="leaderboard-list">${listHtml}</ul></div></div>`,
+                leaderboardRow: (player, displayName, rank, rankInfo, isInactive, change) => {
                     let changeHtml = '';
-                    if (player.change !== 'new' && player.change !== 0) {
-                        const changeClass = player.change > 0 ? 'position-change-up' : 'position-change-down';
-                        const changeIcon = player.change > 0 ? 'chevrons-up' : 'chevrons-down';
-                        changeHtml = `<span class="flex items-center text-xs font-bold ${changeClass}"><i data-lucide="${changeIcon}" class="w-4 h-4"></i> ${Math.abs(player.change)}</span>`;
-                    } else if (player.change === 'new') {
-                        changeHtml = `<span class="text-xs font-bold text-sky-400">NEW</span>`;
+                    if (change !== 'new' && change !== 0) {
+                        const changeClass = change > 0 ? 'position-change-up' : 'position-change-down';
+                        const changeIcon = change > 0 ? 'arrow-up' : 'arrow-down';
+                        changeHtml = `<span class="flex items-center text-sm font-bold ${changeClass}"><i data-lucide="${changeIcon}" class="w-4 h-4 mr-1"></i> ${Math.abs(change)}</span>`;
+                    } else if (change === 'new') {
+                        changeHtml = `<span class="text-xs font-bold text-sky-400 px-2 py-1 bg-sky-500/10 rounded-full">NEW</span>`;
                     }
                     return `
                     <li class="flex items-center justify-between p-4 border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer ${isInactive ? 'opacity-50' : ''}" data-player-name="${player.name}">
@@ -932,14 +837,14 @@
                 playerStatsWrapper: (tableRows, sortCol, sortDir) => `
                     <div class="fade-in">
                         <h2 class="text-2xl font-bold mb-4">Detailed Player Stats</h2>
-                        <div class="glass-card overflow-x-auto hidden md:block">
-                            <table class="w-full text-left">
+                        <div class="glass-card overflow-x-auto">
+                            <table class="w-full text-left min-w-[700px]">
                                 <thead id="player-stats-table-head" class="border-b border-slate-700/50">
                                     <tr>
                                         ${['name', 'skill', 'peakSkill', 'winRate', 'total', 'wins', 'losses', 'longestWinStreak', 'currentStreak'].map(col => {
                                             const labels = {name: 'Player', skill: 'Skill', peakSkill: 'Peak Skill', winRate: 'Win %', total: 'Played', wins: 'Wins', losses: 'Losses', longestWinStreak: 'Best Streak', currentStreak: 'Streak'};
                                             return `<th class="p-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                                <span class="sortable-header ${sortCol === col ? (sortDir === 'asc' ? 'sort-desc' : 'sort-desc') : ''}" data-sort-by="${col}">${labels[col]}</span>
+                                                <span class="sortable-header ${sortCol === col ? (sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : ''}" data-sort-by="${col}">${labels[col]}</span>
                                             </th>`
                                         }).join('')}
                                     </tr>
@@ -947,14 +852,12 @@
                                 <tbody id="player-stats-table-body">${tableRows}</tbody>
                             </table>
                         </div>
-                        <div id="player-stats-mobile-view" class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
-                            </div>
                     </div>`,
                 playerStatsRow: (p, winRateColor) => {
                     const streakColor = p.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400';
                     return `
                     <tr class="border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer" data-player-name="${p.name}">
-                        <td class="p-3 font-bold">${p.name}</td>
+                        <td class="p-3 font-bold whitespace-nowrap">${p.name}</td>
                         <td class="p-3 font-semibold text-violet-300">${p.skill.toFixed(2)}</td>
                         <td class="p-3">${p.peakSkill.toFixed(2)}</td>
                         <td class="p-3 font-semibold ${winRateColor}">${p.winRate}%</td>
@@ -965,19 +868,13 @@
                         <td class="p-3 font-semibold ${streakColor}">${p.currentStreak.count > 0 ? `${p.currentStreak.count}${p.currentStreak.type}` : '-'}</td>
                     </tr>`
                 },
-                head2headWrapper: (playerNames) => `
-                    <div class="fade-in glass-card p-6">
-                        <h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                            ${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50 text-white"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}
-                        </div>
-                        <div id="h2h-results"><p class="text-center text-slate-400 mt-8">Select two players to compare.</p></div>
-                    </div>`,
+                head2headWrapper: playerNames => `<div class="fade-in glass-card p-6"><h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50 text-white"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}</div><div id="h2h-results"><p class="text-center text-slate-400 mt-8">Select two players to compare.</p></div></div>`,
                 head2headResults: (s1, s2, p1Wins, p2Wins, total) => {
                     const compare = (v1, v2, higherIsBetter = true) => {
                         const val1 = parseFloat(v1) || 0, val2 = parseFloat(v2) || 0;
-                        if (val1 === val2) return ['', ''];
-                        return higherIsBetter ? (val1 > val2 ? ['h2h-better', ''] : ['', 'h2h-better']) : (val1 < val2 ? ['h2h-better', ''] : ['', 'h2h-better']);
+                        if (val1 === val2) return ['text-slate-400', 'text-slate-400'];
+                        const p1Better = higherIsBetter ? val1 > val2 : val1 < val2;
+                        return p1Better ? ['text-green-400', 'text-red-400'] : ['text-red-400', 'text-green-400'];
                     };
                     const compareStreak = (st1, st2) => {
                         const v1 = st1.type === 'W' ? st1.count : -st1.count;
@@ -985,58 +882,34 @@
                         return compare(v1, v2);
                     };
                     const c = {
-                        skill: compare(s1.skill, s2.skill),
-                        peak: compare(s1.peakSkill, s2.peakSkill),
-                        winRate: compare(s1.winRate, s2.winRate),
-                        streak: compare(s1.longestWinStreak, s2.longestWinStreak),
+                        skill: compare(s1.skill, s2.skill), peak: compare(s1.peakSkill, s2.peakSkill),
+                        winRate: compare(s1.winRate, s2.winRate), streak: compare(s1.longestWinStreak, s2.longestWinStreak),
                         current: compareStreak(s1.currentStreak, s2.currentStreak)
                     };
-                    const h2hRecord = total > 0 ? `<div class="bg-slate-900/50 p-4 rounded-lg inline-block"><p class="text-4xl font-bold">${p1Wins} - ${p2Wins}</p><p class="text-sm text-slate-400">in ${total} matches</p></div>` : `<div class="bg-slate-900/50 p-4 rounded-lg"><p class="text-slate-400">No matches found against each other.</p></div>`;
-
-                    return `<div class="space-y-6 mt-8">
-                        <div class="text-center"><h3 class="text-xl font-semibold mb-2">Direct Confrontation</h3>${h2hRecord}</div>
-                        <div class="overflow-x-auto"><table class="w-full text-center">
-                            <thead class="border-b-2 border-slate-700/50"><tr class="text-lg font-bold"><th>${s1.name}</th><th class="text-sm font-semibold text-slate-400 w-1/3">Stat</th><th>${s2.name}</th></tr></thead>
-                            <tbody class="divide-y divide-slate-700/50">
-                                ${Object.entries({
-                                    Skill: { v1: s1.skill.toFixed(2), v2: s2.skill.toFixed(2), comp: c.skill },
-                                    "Peak Skill": { v1: s1.peakSkill.toFixed(2), v2: s2.peakSkill.toFixed(2), comp: c.peak },
-                                    "Win Rate": { v1: `${s1.winRate}%`, v2: `${s2.winRate}%`, comp: c.winRate },
-                                    "Record": { v1: `${s1.wins}-${s1.losses}`, v2: `${s2.wins}-${s2.losses}`, comp:['','']},
-                                    "Best Streak": { v1: `${s1.longestWinStreak}W`, v2: `${s2.longestWinStreak}W`, comp: c.streak },
-                                    "Current Streak": { v1: `${s1.currentStreak.count}${s1.currentStreak.type}`, v2: `${s2.currentStreak.count}${s2.currentStreak.type}`, comp: c.current }
-                                }).map(([key, val]) => `<tr><td class="p-3 ${val.comp[0]}">${val.v1}</td><td class="p-3 font-semibold">${key}</td><td class="p-3 ${val.comp[1]}">${val.v2}</td></tr>`).join('')}
-                            </tbody>
-                        </table></div></div>`;
+                    const h2hRecord = total > 0 ? `<div class="bg-slate-900/50 p-4 rounded-lg inline-block"><p class="text-4xl font-bold"><span class="${p1Wins > p2Wins ? 'text-green-400' : p1Wins < p2Wins ? 'text-red-400' : 'text-slate-400'}">${p1Wins}</span> - <span class="${p2Wins > p1Wins ? 'text-green-400' : p2Wins < p1Wins ? 'text-red-400' : 'text-slate-400'}">${p2Wins}</span></p><p class="text-sm text-slate-400">in ${total} matches</p></div>` : `<div class="bg-slate-900/50 p-4 rounded-lg"><p class="text-slate-400">No matches found against each other.</p></div>`;
+                    return `<div class="space-y-6 mt-8"><div class="text-center"><h3 class="text-xl font-semibold mb-2">Direct Confrontation</h3>${h2hRecord}</div><div class="overflow-x-auto"><table class="w-full text-center"><thead><tr class="text-lg font-bold"><th class="p-3">${s1.name}</th><th class="text-sm font-semibold text-slate-400 w-1/3 p-3">Stat</th><th class="p-3">${s2.name}</th></tr></thead><tbody class="divide-y divide-slate-700/50">
+                        ${Object.entries({
+                            Skill: { v1: s1.skill.toFixed(2), v2: s2.skill.toFixed(2), comp: c.skill },
+                            "Peak Skill": { v1: s1.peakSkill.toFixed(2), v2: s2.peakSkill.toFixed(2), comp: c.peak },
+                            "Win Rate": { v1: `${s1.winRate}%`, v2: `${s2.winRate}%`, comp: c.winRate },
+                            "Record": { v1: `${s1.wins}-${s1.losses}`, v2: `${s2.wins}-${s2.losses}`, comp:['text-slate-400', 'text-slate-400']},
+                            "Best Streak": { v1: `${s1.longestWinStreak}W`, v2: `${s2.longestWinStreak}W`, comp: c.streak },
+                            "Current Streak": { v1: `${s1.currentStreak.count}${s1.currentStreak.type}`, v2: `${s2.currentStreak.count}${s2.currentStreak.type}`, comp: c.current }
+                        }).map(([key, val]) => `<tr><td class="p-3 font-bold ${val.comp[0]}">${val.v1}</td><td class="p-3 font-semibold">${key}</td><td class="p-3 font-bold ${val.comp[1]}">${val.v2}</td></tr>`).join('')}
+                    </tbody></table></div></div>`;
                 },
                 recordsWrapper: function(duos, rivalries, superlatives, matches, playerStats, playerRecords) {
                     const recordListTemplate = (record) => {
-                        const topPlayers = Object.values(playerStats)
-                            .filter(p => !record.minGames || p.total >= record.minGames)
-                            .sort((a,b) => b[record.key] - a[record.key]).slice(0, 5);
-
-                        let listHtml = '';
-                        let lastValue = null;
-                        let rank = 0;
+                        const topPlayers = Object.values(playerStats).filter(p => !record.minGames || p.total >= record.minGames).sort((a,b) => b[record.key] - a[record.key]).slice(0, 5);
+                        let listHtml = ''; let lastValue = null; let rank = 0;
                         topPlayers.forEach((p, i) => {
                             const value = p[record.key];
-                            if (value !== lastValue) {
-                                rank = i + 1;
-                            }
+                            if (value !== lastValue) rank = i + 1;
                             lastValue = value;
-                            listHtml += `
-                                <li class="flex justify-between">
-                                    <span class="font-semibold"><span class="inline-block w-5">${rank}.</span> ${p.name}</span>
-                                    <span class="font-bold ${record.color}">${record.format ? record.format(p[record.key]) : p[record.key]}</span>
-                                </li>`;
+                            listHtml += `<li class="flex justify-between"><span class="font-semibold"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color}">${record.format ? record.format(p[record.key]) : p[record.key]}</span></li>`;
                         });
-
-                        return `<div class="bg-slate-800/50 p-4 rounded-lg">
-                                    <h3 class="font-bold text-lg text-slate-200 mb-2">${record.title}</h3>
-                                    <ul class="space-y-2 text-sm">${listHtml}</ul>
-                                </div>`;
+                        return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg text-slate-200 mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
                     };
-
                     return `
                     <div id="records-content" class="fade-in space-y-8">
                          <div class="glass-card p-6">
@@ -1049,15 +922,7 @@
                                     { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<strong>${superlatives.best_performance?.player}</strong> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
                                 ].map(item => {
                                     const match = item.superlative?.match_id !== undefined ? matches[item.superlative.match_id] : null;
-                                    return match ? `
-                                    <div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition">
-                                        <h3 class="font-bold text-lg ${item.color}">${item.title}</h3>
-                                        <p class="text-sm text-slate-400 mb-2">${item.line}</p>
-                                        <div class="text-xs">
-                                            <p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p>
-                                            <p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p>
-                                        </div>
-                                    </div>` : '';
+                                    return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-slate-400 mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : '';
                                 }).join('')}
                             </div>
                         </div>
@@ -1065,242 +930,71 @@
                            ${[
                                { title: 'Top Duos', headers: ['Players', 'Record', 'Win %'], data: duos, render: d => `<tr><td class="p-3 font-semibold">${d.players.join(' & ')}</td><td class="p-3">${d.wins}-${d.total-d.wins}</td><td class="p-3 font-bold ${this.getWinRateColor( (d.wins/d.total)*100 )}">${((d.wins/d.total)*100).toFixed(1)}%</td></tr>`},
                                { title: 'Biggest Rivalries', headers: ['Players', 'H2H', 'Total'], data: rivalries, render: r => `<tr><td class="p-3 font-semibold">${r.players[0]} vs ${r.players[1]}</td><td class="p-3 font-bold text-violet-400">${r.p1_wins} - ${r.p2_wins}</td><td class="p-3">${r.total}</td></tr>` }
-                           ].map(table => `
-                            <div class="glass-card">
-                                <div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-slate-400">Min. 3 matches played.</p></div>
-                                <div class="overflow-x-auto"><table class="w-full text-left">
-                                    <thead class="text-xs text-slate-400 uppercase"><tr>${table.headers.map(h => `<th class="p-3">${h}</th>`).join('')}</tr></thead>
-                                    <tbody>${(table.data || []).map(table.render).join('')}</tbody>
-                                </table></div>
-                            </div>`).join('')}
+                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-slate-400">Min. 3 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-slate-400 uppercase">${table.headers.map(h => `<th class="p-3">${h}</th>`).join('')}</tr></thead><tbody>${(table.data || []).map(table.render).join('')}</tbody></table></div></div>`).join('')}
                         </div>
-                        <div class="glass-card p-6">
-                            <h2 class="text-2xl font-bold mb-4">Player Records</h2>
-                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                ${playerRecords.map(record => recordListTemplate(record)).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `},
+                        <div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Player Records</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${playerRecords.map(record => recordListTemplate(record)).join('')}</div></div>
+                    </div>`},
                 matchCard: (match, matchId) => `
                     <div class="glass-card p-4 hover:border-slate-600 transition cursor-pointer" data-match-id="${matchId}">
-                        <div class="flex justify-between items-center mb-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="font-extrabold text-2xl tracking-tight">${match.scoreA} - ${match.scoreB}</p>
+                                <p class="text-xs text-slate-500">${new Date(match.ts).toLocaleDateString()}</p>
+                            </div>
                             <i data-lucide="swords" class="h-5 w-5 text-slate-500"></i>
-                            <span class="font-extrabold text-2xl tracking-tight">${match.scoreA} - ${match.scoreB}</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3 text-xs">
-                            <div class="p-2 rounded ${match.scoreA > match.scoreB ? 'bg-green-500/10' : 'bg-slate-800/30'}">
-                                <p class="font-bold mb-1 truncate ${match.scoreA > match.scoreB ? 'text-green-300' : ''}">Team A</p>
-                                <p class="text-slate-400">${match.teamA.join(', ')}</p>
-                            </div>
-                             <div class="p-2 rounded ${match.scoreB > match.scoreA ? 'bg-green-500/10' : 'bg-slate-800/30'}">
-                                <p class="font-bold mb-1 truncate ${match.scoreB > match.scoreA ? 'text-green-300' : ''}">Team B</p>
-                                <p class="text-slate-400">${match.teamB.join(', ')}</p>
-                            </div>
+                            <div class="p-2 rounded ${match.scoreA > match.scoreB ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreA > match.scoreB ? 'text-green-300' : ''}">Team A</p><p class="text-slate-400">${match.teamA.join(', ')}</p></div>
+                            <div class="p-2 rounded ${match.scoreB > match.scoreA ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreB > match.scoreA ? 'text-green-300' : ''}">Team B</p><p class="text-slate-400">${match.teamB.join(', ')}</p></div>
                         </div>
                     </div>`,
                 noHistory: () => `<div class="fade-in glass-card p-8 text-center"><h2 class="text-2xl font-bold mb-2">No History Yet</h2><p class="text-slate-400">Play some matches to see historical rankings.</p></div>`,
-                historyWrapper: (maxMatchIndex) => `
-                    <div class="fade-in glass-card p-6">
-                        <h2 class="text-2xl font-bold">Historical Leaderboard</h2>
-                        <p class="text-slate-400 mb-4">Drag the slider to view rankings after each match.</p>
-                        <div class="flex items-center gap-4 mb-4">
-                            <input type="range" id="history-slider" class="w-full" min="0" max="${maxMatchIndex}" value="${maxMatchIndex}">
-                            <span id="history-match-label" class="font-semibold whitespace-nowrap"></span>
-                        </div>
-                        <div id="historical-leaderboard-display" class="max-h-[50vh] overflow-y-auto pr-2"></div>
-                    </div>`,
+                historyWrapper: maxMatchIndex => `<div class="fade-in glass-card p-6"><h2 class="text-2xl font-bold">Historical Leaderboard</h2><p class="text-slate-400 mb-4">Drag the slider to view rankings after each match.</p><div class="flex items-center gap-4 mb-4"><input type="range" id="history-slider" class="w-full" min="0" max="${maxMatchIndex}" value="${maxMatchIndex}"><span id="history-match-label" class="font-semibold whitespace-nowrap"></span></div><div id="historical-leaderboard-display" class="max-h-[50vh] overflow-y-auto pr-2"></div></div>`,
                 historicalLeaderboardRow: (player, rank, rankInfo) => {
                     let changeHtml = '';
                     if (player.change && player.change !== 'new' && player.change !== 0) {
                         const changeClass = player.change > 0 ? 'position-change-up' : 'position-change-down';
-                        const changeIcon = player.change > 0 ? 'chevrons-up' : 'chevrons-down';
-                        changeHtml = `<span class="flex items-center text-xs font-bold ${changeClass}"><i data-lucide="${changeIcon}" class="w-3 h-3"></i> ${Math.abs(player.change)}</span>`;
+                        const changeIcon = player.change > 0 ? 'arrow-up' : 'arrow-down';
+                        changeHtml = `<span class="flex items-center font-bold ${changeClass}"><i data-lucide="${changeIcon}" class="w-4 h-4 mr-1"></i> ${Math.abs(player.change)}</span>`;
                     }
                     return `
                     <li class="flex items-center justify-between p-3 bg-slate-800/30 rounded-md">
                         <div class="flex items-center gap-3">
                             <span class="text-md font-bold text-slate-400 w-6 text-center">${rank}</span>
-                            <div>
-                                <p class="font-semibold">${player.name}</p>
-                                <p class="text-xs text-slate-400">Skill: ${player.skill.toFixed(2)}</p>
-                            </div>
+                            <div><p class="font-semibold">${player.name}</p><p class="text-xs text-slate-400">Skill: ${player.skill.toFixed(2)}</p></div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-3">
                            ${changeHtml}
                            <span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span>
                         </div>
                     </li>`
                 },
-                adminWrapper: () => `
-                    <div class="fade-in grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="glass-card p-6">
-                            <h2 class="text-2xl font-bold mb-4">Add a New Match</h2>
-                            <form id="add-match-form" class="space-y-4">
-                                ${['A','B'].map(t => `<div><label class="block font-medium mb-1 text-slate-300">Team ${t}</label><textarea name="team${t}" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea></div>`).join('')}
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
-                                    <div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
-                                </div>
-                                <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button>
-                                <div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4"></div>
-                            </form>
-                        </div>
-                        <div class="glass-card p-6">
-                            <h2 class="text-2xl font-bold mb-4">Documentation</h2>
-                            <div class="space-y-4 text-sm text-slate-300">
-                                <p>This application communicates with a Python Flask backend.</p>
-                                <p><strong>Read-Only Mode:</strong> View all stats without an admin secret.</p>
-                                <p><strong>Admin Mode:</strong> Provide the secret to enable adding matches and editing player details. The secret is defined in the <code class="bg-slate-800/50 px-1 py-0.5 rounded">app.py</code> backend file.</p>
-                                <p>Player data can be edited from their individual detail pages when in Admin Mode.</p>
-                            </div>
-                        </div>
-                    </div>`,
-                playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `
-                    <div class="fade-in glass-card p-6 max-w-5xl mx-auto">
-                        <div class="flex justify-between items-start mb-4">
-                            <button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline">
-                                <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to ${originTab.replace('_', ' ')}
-                            </button>
-                             <button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3">
-                                <i data-lucide="edit-3" class="h-4 w-4"></i> Edit
-                            </button>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-4 mb-6">
-                            <h2 class="text-3xl font-bold">${displayName}</h2>
-                            <span class="rank-badge ${rank.class}">${rank.name}</span>
-                        </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">
-                            ${Object.entries({
-                                Skill: stats.skill.toFixed(2),
-                                "Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},
-                                "Win Rate": `${stats.winRate}%`,
-                                Record: `${stats.wins}-${stats.losses}`,
-                                "Best Streak": `${stats.longestWinStreak}W`,
-                                "Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}
-                            }).map(([label, data]) => {
-                                const value = typeof data === 'object' ? data.value : data;
-                                const glowClass = data.glow ? 'peak-skill-glow' : '';
-                                const colorClass = data.color || '';
-                                return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-slate-400 uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`
-                            }).join('')}
-                        </div>
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div>
-                                <h3 class="text-xl font-semibold mb-2">Skill History</h3>
-                                <div class="h-64"><canvas id="elo-chart"></canvas></div>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-semibold mb-2">Recent Matches</h3>
-                                <div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div>
-                            </div>
-                        </div>
-                    </div>`,
-                playerMatchHistoryRow: (match, matchId, won, skillChange) => `
-                    <div data-match-id="${matchId}" class="bg-slate-800/50 p-3 rounded-md flex justify-between items-center hover:bg-slate-800/80 cursor-pointer transition">
-                        <div>
-                            <p class="text-sm font-semibold">${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p>
-                            <p class="text-xs text-slate-400">${new Date(match.ts).toLocaleDateString()}</p>
-                        </div>
-                        <div class="text-right">
-                             <p class="font-bold text-lg">${match.scoreA}-${match.scoreB}</p>
-                             <div class="flex items-center justify-end gap-2">
-                                <span class="text-xs font-bold ${won ? 'text-green-400' : 'text-red-400'}">${won ? 'WIN' : 'LOSS'}</span>
-                                <span class="text-xs font-semibold ${skillChange >= 0 ? 'text-green-400' : 'text-red-400'}">${skillChange >= 0 ? '+' : ''}${skillChange.toFixed(2)}</span>
-                             </div>
-                        </div>
-                    </div>`,
+                adminWrapper: () => `<div class="fade-in grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Add a New Match</h2><form id="add-match-form" class="space-y-4">${['A','B'].map(t => `<div><label class="block font-medium mb-1 text-slate-300">Team ${t}</label><textarea name="team${t}" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea></div>`).join('')}<div class="grid grid-cols-2 gap-4"><div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div><div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div></div><button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button><div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4"></div></form></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Documentation</h2><div class="space-y-4 text-sm text-slate-300"><p>This application communicates with a Python Flask backend.</p><p><strong>Read-Only Mode:</strong> View all stats without an admin secret.</p><p><strong>Admin Mode:</strong> Provide the secret to enable adding matches and editing player details. The secret is defined in the <code class="bg-slate-800/50 px-1 py-0.5 rounded">app.py</code> backend file.</p><p>Player data can be edited from their individual detail pages when in Admin Mode.</p></div></div></div>`,
+                playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `<div class="fade-in glass-card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-start mb-4"><button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to ${originTab.replace('_', ' ')}</button><button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button></div><div class="flex flex-wrap items-center gap-4 mb-6"><h2 class="text-3xl font-bold">${displayName}</h2><span class="rank-badge ${rank.class}">${rank.name}</span></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">${Object.entries({Skill: stats.skill.toFixed(2),"Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},"Win Rate": `${stats.winRate}%`,Record: `${stats.wins}-${stats.losses}`,"Best Streak": `${stats.longestWinStreak}W`,"Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}}).map(([label, data]) => {const value = typeof data === 'object' ? data.value : data; const glowClass = data.glow ? 'peak-skill-glow' : ''; const colorClass = data.color || ''; return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-slate-400 uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`}).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div><h3 class="text-xl font-semibold mb-2">Skill History</h3><div class="h-64"><canvas id="elo-chart"></canvas></div></div><div><h3 class="text-xl font-semibold mb-2">Recent Matches</h3><div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div></div></div></div>`,
+                playerMatchHistoryRow: (match, matchId, won, skillChange) => `<div data-match-id="${matchId}" class="bg-slate-800/50 p-3 rounded-md flex justify-between items-center hover:bg-slate-800/80 cursor-pointer transition"><div><p class="text-sm font-semibold">${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="text-xs text-slate-400">${new Date(match.ts).toLocaleDateString()}</p></div><div class="text-right"><p class="font-bold text-lg">${match.scoreA}-${match.scoreB}</p><div class="flex items-center justify-end gap-2"><span class="text-xs font-bold ${won ? 'text-green-400' : 'text-red-400'}">${won ? 'WIN' : 'LOSS'}</span><span class="text-xs font-semibold ${skillChange >= 0 ? 'text-green-400' : 'text-red-400'}">${skillChange >= 0 ? '+' : ''}${skillChange.toFixed(2)}</span></div></div></div>`,
                 matchModal: (match, teamAChanges, teamBChanges, winProbA, matchId) => {
-                    const renderTeam = (changes) => changes.map(p => `
-                        <li class="flex justify-between items-center py-2">
-                            <p class="font-semibold">${p.name}</p>
-                            <div class="text-right">
-                                <span class="font-bold ${p.change > 0 ? 'text-green-400' : 'text-red-400'}">${p.change > 0 ? '+' : ''}${p.change}</span>
-                                <p class="text-xs text-slate-400">Skill: ${p.skill}</p>
-                            </div>
-                        </li>`).join('');
-
+                    const renderTeam = changes => changes.map(p => `<li class="flex justify-between items-center py-2"><p class="font-semibold">${p.name}</p><div class="text-right"><span class="font-bold ${p.change > 0 ? 'text-green-400' : 'text-red-400'}">${p.change > 0 ? '+' : ''}${p.change}</span><p class="text-xs text-slate-400">Skill: ${p.skill}</p></div></li>`).join('');
                     const matchDate = new Date(match.ts);
                     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
                     return `
-                        <div class="flex justify-between items-center mb-4">
-                             <div>
-                                <h2 class="text-2xl font-bold">Match #${parseInt(matchId) + 1}</h2>
-                                <p class="text-sm text-slate-400">${matchDate.toLocaleDateString(undefined, dateOptions)}</p>
-                            </div>
+                        <div class="flex justify-between items-start mb-4">
+                             <div><h2 class="text-2xl font-bold">Match #${parseInt(matchId) + 1}</h2><p class="text-sm text-slate-400">${matchDate.toLocaleDateString(undefined, dateOptions)}</p></div>
                             <button class="close-modal-btn text-slate-400 hover:text-white"><i data-lucide="x" class="h-6 w-6"></i></button>
                         </div>
-                        <div class="text-center mb-6">
-                            <p class="font-extrabold text-5xl">${match.scoreA} - ${match.scoreB}</p>
-                        </div>
+                        <div class="text-center mb-6"><p class="font-extrabold text-5xl">${match.scoreA} - ${match.scoreB}</p></div>
                         <div class="glass-card p-4 mb-6">
-                             <h3 class="font-bold text-center mb-2">Pre-Match Prediction</h3>
+                             <h3 class="font-bold text-center mb-1">Pre-Match Prediction</h3>
+                             <p class="text-xs text-slate-500 text-center mb-2">Based on player skills before this match.</p>
                              <div class="flex justify-around items-center">
-                                <div class="text-center">
-                                    <p class="font-bold text-xl">Team A</p>
-                                    <p class="text-2xl font-bold text-sky-400">${(winProbA * 100).toFixed(1)}%</p>
-                                </div>
+                                <div class="text-center"><p class="font-bold text-xl">Team A</p><p class="text-2xl font-bold text-sky-400">${(winProbA * 100).toFixed(1)}%</p></div>
                                 <div class="text-slate-500 font-bold text-lg">vs</div>
-                                <div class="text-center">
-                                    <p class="font-bold text-xl">Team B</p>
-                                    <p class="text-2xl font-bold text-sky-400">${((1 - winProbA) * 100).toFixed(1)}%</p>
-                                </div>
+                                <div class="text-center"><p class="font-bold text-xl">Team B</p><p class="text-2xl font-bold text-sky-400">${((1 - winProbA) * 100).toFixed(1)}%</p></div>
                              </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            ${[teamAChanges, teamBChanges].map((changes, i) => `
-                            <div class="bg-slate-800/50 p-4 rounded-lg">
-                                <h3 class="font-bold text-center mb-2">Team ${i === 0 ? 'A' : 'B'} Skill Changes</h3>
-                                <ul class="divide-y divide-slate-700/50">${renderTeam(changes)}</ul>
-                            </div>`).join('')}
-                        </div>
-                    `;
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">${[teamAChanges, teamBChanges].map((changes, i) => `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-center mb-2">Team ${i === 0 ? 'A' : 'B'} Skill Changes</h3><ul class="divide-y divide-slate-700/50">${renderTeam(changes)}</ul></div>`).join('')}</div>`;
                 },
-                editPlayerModal: (playerName, details) => `
-                    <form id="edit-player-form">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-2xl font-bold">Edit Player</h2>
-                            <button type="button" class="close-modal-btn text-slate-400 hover:text-white"><i data-lucide="x" class="h-6 w-6"></i></button>
-                        </div>
-                        <div class="space-y-4">
-                            <div><label class="block text-sm font-medium text-slate-300">Name</label><input type="text" name="newName" value="${playerName}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div>
-                            <div><label class="block text-sm font-medium text-slate-300">Last Name</label><input type="text" name="lastName" value="${details.lastName || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div>
-                            <div><label class="block text-sm font-medium text-slate-300">Abbreviation</label><input type="text" name="abbrev" value="${details.abbrev || ''}" maxlength="3" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div>
-                            <div><label class="block text-sm font-medium text-slate-300">Number</label><input type="text" name="number" value="${details.number || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div>
-                        </div>
-                        <div class="mt-6 flex justify-end gap-3">
-                            <button type="button" class="close-modal-btn glass-button rounded-md py-2 px-4 font-semibold">Cancel</button>
-                            <button type="submit" class="bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Save Changes</button>
-                        </div>
-                        <p id="edit-player-error" class="text-red-400 text-right text-sm font-semibold h-4 mt-2"></p>
-                    </form>
-                `,
-                 guide: () => `
-                    <div class="fade-in grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="glass-card p-6 space-y-4">
-                            <h2 class="text-2xl font-bold">Ranking System Guide</h2>
-                            <p class="text-slate-300">This app uses the <strong>TrueSkill</strong> algorithm with default settings. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p>
-                             <p class="text-slate-300">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value can go below zero and provides a clear separation between players of different tiers.</p>
-                             <p class="text-slate-300">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p>
-                        </div>
-                         <div class="glass-card p-6">
-                            <h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2>
-                            <ul class="space-y-3">
-                                ${[
-                                    { name: 'Master', skill: '25+', class: 'rank-master'},
-                                    { name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},
-                                    { name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},
-                                    { name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},
-                                    { name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},
-                                    { name: 'Bronze', skill: '< 5', class: 'rank-bronze'},
-                                ].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md">
-                                    <span class="rank-badge ${tier.class}">${tier.name}</span>
-                                    <span class="font-semibold text-slate-200">${tier.skill}</span>
-                                </li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>`
+                editPlayerModal: (playerName, details) => `<form id="edit-player-form"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Edit Player</h2><button type="button" class="close-modal-btn text-slate-400 hover:text-white"><i data-lucide="x" class="h-6 w-6"></i></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-slate-300">Name</label><input type="text" name="newName" value="${playerName}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium text-slate-300">Last Name</label><input type="text" name="lastName" value="${details.lastName || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium text-slate-300">Abbreviation</label><input type="text" name="abbrev" value="${details.abbrev || ''}" maxlength="3" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium text-slate-300">Number</label><input type="text" name="number" value="${details.number || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div></div><div class="mt-6 flex justify-end gap-3"><button type="button" class="close-modal-btn glass-button rounded-md py-2 px-4 font-semibold">Cancel</button><button type="submit" class="bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Save Changes</button></div><p id="edit-player-error" class="text-red-400 text-right text-sm font-semibold h-4 mt-2"></p></form>`,
+                guide: () => `<div class="fade-in grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-slate-300">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-slate-300">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-slate-300">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold text-slate-200">${tier.skill}</span></li>`).join('')}</ul></div></div>`
             }
         };
 
