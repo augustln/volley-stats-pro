@@ -39,6 +39,7 @@
             background-image: radial-gradient(ellipse 80% 80% at 50% -20%,rgba(120,119,198,0.3),hsla(0,0%,100%,0));
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
+            overscroll-behavior: contain;
         }
 
         html.light body {
@@ -181,7 +182,8 @@
 
             <!-- Tabs -->
             <div class="mb-6 border-b border-slate-700/50">
-                <nav id="tabs" class="flex flex-wrap -mb-px text-sm font-medium">
+                <!-- Mobile Friendliness Fix: Changed flex-wrap to flex-nowrap and added overflow-x-auto for better scrolling on small screens -->
+                <nav id="tabs" class="flex flex-nowrap overflow-x-auto -mb-px text-sm font-medium">
                     <a href="#" data-tab="leaderboard" class="tab py-4 px-3 md:px-4 border-b-2 border-transparent">Leaderboard</a>
                     <a href="#" data-tab="player_stats" class="tab py-4 px-3 md:px-4 border-b-2 border-transparent">Player Stats</a>
                     <a href="#" data-tab="head2head" class="tab py-4 px-3 md:px-4 border-b-2 border-transparent">H2H</a>
@@ -543,19 +545,22 @@
             },
 
             // --- UPDATE & HELPER FUNCTIONS ---
+            // BUG FIX: Replaced the faulty listener re-attachment logic.
+            // Instead of duplicating code, this now calls the main attachEventListeners function.
+            // This ensures that ALL necessary listeners (for rows and headers) are properly
+            // re-attached after the table body is re-rendered during a sort.
             sortPlayerStats(newColumn) {
                 const { playerStatsSort } = this.state;
                 if (playerStatsSort.column === newColumn) {
                     playerStatsSort.direction = playerStatsSort.direction === 'asc' ? 'desc' : 'asc';
                 } else {
                     playerStatsSort.column = newColumn;
+                    // Default to ascending for names, descending for all other (mostly numerical) columns
                     playerStatsSort.direction = ['name'].includes(newColumn) ? 'asc' : 'desc';
                 }
-                this.renderPlayerStatsTable(true);
-                // Re-attach listeners after re-rendering the body
-                document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
-                    el.addEventListener('click', () => this.renderPlayerDetail(el.dataset.playerName));
-                });
+                this.renderPlayerStatsTable(true); // Re-render just the table body
+                // After re-rendering, re-attach ALL listeners for the player_stats view
+                this.attachEventListeners('player_stats');
             },
 
             updateHead2Head() {
@@ -1130,5 +1135,3 @@
     </script>
 </body>
 </html>
-
-
