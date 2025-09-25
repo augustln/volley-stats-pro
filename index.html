@@ -130,10 +130,13 @@
             left: 0;
         }
         
-        html.dark .sticky-col {
+        /* Make the sticky player column in the stats table opaque for readability on scroll */
+        html.dark #player-stats-table-head .sticky-col,
+        html.dark #player-stats-table-body .sticky-col {
             background-color: rgb(30, 41, 59); /* slate-800 */
         }
-        html.light .sticky-col {
+        html.light #player-stats-table-head .sticky-col,
+        html.light #player-stats-table-body .sticky-col {
             background-color: rgb(241, 245, 249); /* slate-100 */
         }
 
@@ -1160,5 +1163,6 @@
     </script>
 </body>
 </html>
+
 
 
