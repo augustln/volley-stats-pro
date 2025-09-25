@@ -53,7 +53,7 @@ def calculate_all_stats():
     historical_leaderboards = [{'leaderboard': [], 'match_id': -1}]
     last_played_index = {name: -1 for name in player_names}
 
-    superlatives = {'upset': {'prob': 1}, 'dominant': {'margin': 0}}
+    superlatives = {'upset': {'prob': 1}, 'dominant': {'margin': 0}, 'best_performance': {'skill_gain': 0}}
     rivalries, duos = {}, {}
 
     # --- Main calculation loop ---
@@ -96,6 +96,11 @@ def calculate_all_stats():
 
         for team_ratings in new_ratings:
             for player_name, new_rating in team_ratings.items():
+                old_rating = ratings[player_name]
+                skill_gain = (new_rating.mu - 3 * new_rating.sigma) - (old_rating.mu - 3 * old_rating.sigma)
+                if skill_gain > superlatives['best_performance']['skill_gain']:
+                    superlatives['best_performance'] = {'skill_gain': skill_gain, 'player': player_name, 'match_id': match_index}
+
                 ratings[player_name] = new_rating
                 history[player_name].append({'mu': new_rating.mu, 'sigma': new_rating.sigma, 'match_id': match_index})
 
@@ -103,11 +108,28 @@ def calculate_all_stats():
             last_played_index[p] = match_index
 
         # Store historical leaderboard
-        current_leaderboard = sorted(
-            [{'name': name, 'skill': r.mu - 3 * r.sigma} for name, r in ratings.items()],
-            key=lambda x: x['skill'], reverse=True
-        )
-        historical_leaderboards.append({'leaderboard': current_leaderboard, 'match_id': match_index})
+        current_leaderboard_data = {name: {'name': name, 'skill': r.mu - 3 * r.sigma} for name, r in ratings.items()}
+        
+        if len(historical_leaderboards) > 0:
+            prev_leaderboard = historical_leaderboards[-1]['leaderboard']
+            prev_ranks = {p['name']: i for i, p in enumerate(prev_leaderboard)}
+            
+            # Create a sorted list of players for the current leaderboard
+            current_leaderboard_list = sorted(current_leaderboard_data.values(), key=lambda x: x['skill'], reverse=True)
+            
+            for i, player in enumerate(current_leaderboard_list):
+                prev_rank = prev_ranks.get(player['name'])
+                if prev_rank is not None:
+                    player['change'] = prev_rank - i
+                else:
+                    player['change'] = 'new'
+            historical_leaderboards.append({'leaderboard': current_leaderboard_list, 'match_id': match_index})
+        else:
+            current_leaderboard_list = sorted(current_leaderboard_data.values(), key=lambda x: x['skill'], reverse=True)
+            for player in current_leaderboard_list:
+                player['change'] = 0
+            historical_leaderboards.append({'leaderboard': current_leaderboard_list, 'match_id': match_index})
+
 
     # --- Post-Calculation Analysis ---
     leaderboard = historical_leaderboards[-1]['leaderboard']
