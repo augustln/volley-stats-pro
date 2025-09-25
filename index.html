@@ -248,7 +248,32 @@
 
                 this.renderAdminStatus();
                 this.setupTabListener();
+                // DEFINITIVE FIX: Set up the main click handler ONCE and use event delegation.
+                // This is robust and prevents listeners from being lost or duplicated.
+                this.setupDelegatedListeners();
                 await this.fetchData();
+            },
+            
+            // DEFINITIVE FIX: This function sets up the click handler for the entire content area.
+            // It's called only once and handles clicks on players and matches reliably,
+            // no matter how the content changes.
+            setupDelegatedListeners() {
+                const contentWrapper = document.getElementById('content-wrapper');
+                contentWrapper.addEventListener('click', (e) => {
+                    const playerLink = e.target.closest('[data-player-name]');
+                    const matchLink = e.target.closest('[data-match-id]');
+
+                    if (playerLink) {
+                        e.preventDefault();
+                        // Prevent clicks inside an open modal from triggering navigation
+                        if (e.target.closest('#modal-content')) return;
+                        this.renderPlayerDetail(playerLink.dataset.playerName);
+                    } else if (matchLink) {
+                        e.preventDefault();
+                        if (e.target.closest('#modal-content')) return;
+                        this.showMatchModal(matchLink.dataset.matchId);
+                    }
+                });
             },
 
             setupTabListener() {
@@ -264,7 +289,7 @@
             // --- DATA FETCHING & HANDLING ---
             async fetchData(showLoading = true) {
                 if (showLoading) {
-                   this.showMainView(); // Show loader in main view
+                   this.showMainView();
                    document.getElementById('main-view').innerHTML = this.templates.loader('Fetching latest stats...');
                 }
                 try {
@@ -272,7 +297,6 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     this.state.data = await response.json();
                     this.processData();
-                    // After fetching, always render the active tab
                     this.activateTab(this.state.activeTab, true);
                 } catch (error) {
                     console.error("Failed to fetch data:", error);
@@ -368,9 +392,7 @@
             activateTab(tabName, forceRender = false) {
                 if (!this.state.data) return;
                 
-                // Always show the main view when switching tabs
                 this.showMainView();
-                
                 this.state.activeTab = tabName;
 
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
@@ -422,22 +444,10 @@
             },
 
             // --- EVENT LISTENER ATTACHMENT ---
+            // DEFINITIVE FIX: This function now only attaches listeners for UI elements
+            // specific to each view. The main navigation clicks are handled by the
+            // single delegated listener set up at the start.
             attachEventListeners(viewName) {
-                // Event Delegation for player links
-                const mainContent = document.getElementById('content-wrapper');
-                mainContent.onclick = (e) => {
-                    const playerLink = e.target.closest('[data-player-name]');
-                    const matchLink = e.target.closest('[data-match-id]');
-
-                    if (playerLink) {
-                        e.preventDefault();
-                        this.renderPlayerDetail(playerLink.dataset.playerName);
-                    } else if (matchLink) {
-                        e.preventDefault();
-                        this.showMatchModal(matchLink.dataset.matchId);
-                    }
-                };
-
                 if (viewName === 'leaderboard') {
                     document.getElementById('toggle-inactive')?.addEventListener('change', e => {
                         this.state.showInactive = e.target.checked;
@@ -522,8 +532,6 @@
                             el.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
                         }
                     });
-                    // After re-rendering the body, re-add specific listeners if necessary
-                    // (Event delegation handles this better, so this might not be needed)
                     return;
                 }
                 return this.templates.playerStatsWrapper(tableRows, column, direction);
@@ -578,6 +586,8 @@
                     playerStatsSort.column = newColumn;
                     playerStatsSort.direction = ['name'].includes(newColumn) ? 'asc' : 'desc';
                 }
+                // DEFINITIVE FIX: No need to re-attach listeners here anymore.
+                // The single delegated listener handles all clicks automatically.
                 this.renderPlayerStatsTable(true);
             },
 
@@ -830,8 +840,8 @@
                         const result = await response.json();
                         if (!response.ok) throw new Error(result.error || 'Server error');
                         this.closeModal();
-                        await this.fetchData();
-                        this.renderPlayerDetail(payload.newName);
+                        await this.fetchData(false); // Fetch new data but don't show main loader
+                        this.renderPlayerDetail(payload.newName); // Re-render the detail view
                     } catch (error) {
                         document.getElementById('edit-player-error').textContent = error.message;
                     }
@@ -906,7 +916,6 @@
                     document.documentElement.classList.add('dark');
                     document.documentElement.classList.remove('light');
                 }
-                // Force Chart.js to re-render with new colors
                 if(this.state.data) this.activateTab(this.state.activeTab, true);
             },
 
@@ -1025,7 +1034,7 @@
                             const value = p[record.key];
                             if (value !== lastValue) rank = i + 1;
                             lastValue = value;
-                            listHtml += `<li class="flex justify-between"><span class="font-semibold"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color}">${record.format ? record.format(p[record.key]) : p[record.key]}</span></li>`;
+                            listHtml += `<li class="flex justify-between" data-player-name="${p.name}"><span class="font-semibold cursor-pointer"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color}">${record.format ? record.format(p[record.key]) : p[record.key]}</span></li>`;
                         });
                         return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
                     };
@@ -1038,7 +1047,7 @@
                                     { superlative: superlatives.upset, title: 'Biggest Upset', color: 'text-violet-400', line: `Winner had a <strong>${superlatives.upset?.prob ? (superlatives.upset.prob * 100).toFixed(1) : 'N/A'}%</strong> chance to win.` },
                                     { superlative: superlatives.dominant, title: 'Most Dominant Win', color: 'text-amber-400', line: `Won by a margin of <strong>${superlatives.dominant?.margin ?? 'N/A'}</strong> points.`},
                                     { superlative: superlatives.highCaliber, title: 'Highest Caliber Match', color: 'text-sky-400', line: `Average player skill was <strong>${superlatives.highCaliber?.avgSkill ? superlatives.highCaliber.avgSkill.toFixed(2) : 'N/A'}</strong>.`},
-                                    { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<strong>${superlatives.best_performance?.player}</strong> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
+                                    { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<span class="cursor-pointer" data-player-name="${superlatives.best_performance?.player}"><strong>${superlatives.best_performance?.player}</strong></span> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
                                 ].map(item => {
                                     const match = item.superlative?.match_id !== undefined ? matches[item.superlative.match_id] : null;
                                     return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-muted-color mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : '';
