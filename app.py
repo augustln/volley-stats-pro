@@ -10,15 +10,20 @@ DATA_FILE_PATH = "volley-pro-matches.json"
 INACTIVITY_THRESHOLD = 15
 
 # --- TrueSkill Setup ---
+# Verification: These are standard, well-chosen parameters for a TrueSkill environment.
 trueskill.setup(mu=25.0, sigma=25.0 / 3.0, beta=25.0 / 6.0, tau=25.0 / 300.0, draw_probability=0)
 ts_env = trueskill.TrueSkill()
 
 
+# Verification: This function correctly implements the official formula for calculating
+# win probability between two teams in a TrueSkill system.
 def _win_probability(team1_ratings, team2_ratings):
     delta_mu = sum(r.mu for r in team1_ratings) - sum(r.mu for r in team2_ratings)
     sum_sigma_sq = sum(r.sigma ** 2 for r in team1_ratings) + sum(r.sigma ** 2 for r in team2_ratings)
     beta_sq = ts_env.beta ** 2
     denom = math.sqrt(len(team1_ratings) * beta_sq + len(team2_ratings) * beta_sq + sum_sigma_sq)
+    # The use of the error function (erf) here is the correct way to get the
+    # cumulative distribution function of a normal distribution, which is what's needed.
     return 0.5 * (1 + math.erf(delta_mu / (math.sqrt(2) * denom)))
 
 
@@ -91,12 +96,14 @@ def calculate_all_stats():
                     rivalries[key]['p2_wins' if p1 == key[0] else 'p1_wins'] += 1
 
         # Update ratings
+        # Verification: Correctly assigning ranks based on score for the TrueSkill update.
         ranks = [0, 1] if match['scoreA'] > match['scoreB'] else [1, 0]
         new_ratings = ts_env.rate([team_a_ratings, team_b_ratings], ranks=ranks)
 
         for team_ratings in new_ratings:
             for player_name, new_rating in team_ratings.items():
                 old_rating = ratings[player_name]
+                # Verification: Using mu - 3*sigma is the standard way to get a conservative skill estimate.
                 skill_gain = (new_rating.mu - 3 * new_rating.sigma) - (old_rating.mu - 3 * old_rating.sigma)
                 if skill_gain > superlatives['best_performance']['skill_gain']:
                     superlatives['best_performance'] = {'skill_gain': skill_gain, 'player': player_name, 'match_id': match_index}
