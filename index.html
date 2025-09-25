@@ -18,18 +18,31 @@
     <style>
         :root {
             --background-start-rgb: 15, 23, 42; /* slate-900 */
-            --background-end-rgb: 51, 65, 85; /* slate-700 */
             --glass-color: rgba(255, 255, 255, 0.05);
             --border-color: rgba(255, 255, 255, 0.1);
             --accent-color: #8b5cf6; /* violet-500 */
-            --accent-color-hover: #7c3aed; /* violet-600 */
+            --text-color: #e2e8f0; /* slate-200 */
+            --text-muted-color: #94a3b8; /* slate-400 */
+        }
+
+        html.light {
+            --background-start-rgb: 241, 245, 249; /* slate-100 */
+            --glass-color: rgba(255, 255, 255, 0.7);
+            --border-color: rgba(0, 0, 0, 0.1);
+            --text-color: #1e293b; /* slate-800 */
+            --text-muted-color: #64748b; /* slate-500 */
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: rgb(var(--background-start-rgb));
             background-image: radial-gradient(ellipse 80% 80% at 50% -20%,rgba(120,119,198,0.3),hsla(0,0%,100%,0));
-            color: #e2e8f0; /* slate-200 */
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        html.light body {
+            background-image: none;
         }
 
         /* --- Glassmorphism Styles --- */
@@ -39,7 +52,12 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
             border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        html.light .glass-card {
+             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
 
         .glass-button {
@@ -52,14 +70,18 @@
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
         }
+        
+        html.light .glass-button:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
 
         .tab {
             position: relative;
-            color: #94a3b8; /* slate-400 */
+            color: var(--text-muted-color);
         }
 
         .tab-active {
-            color: white;
+            color: var(--text-color);
         }
 
         .tab-active::after {
@@ -76,8 +98,8 @@
         /* --- Custom Scrollbar --- */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
-        ::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.3); }
+        ::-webkit-scrollbar-thumb { background-color: rgba(128,128,128,0.2); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(128,128,128,0.3); }
 
         /* --- Rank Badge Styles --- */
         .rank-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
@@ -105,10 +127,17 @@
             position: -webkit-sticky; /* for Safari */
             position: sticky;
             left: 0;
+        }
+        
+        html.dark .sticky-col {
             background-color: rgba(30, 41, 59, 0.8); /* slate-800 with some transparency */
             backdrop-filter: blur(5px);
         }
-        /* A border to separate the sticky column */
+        html.light .sticky-col {
+            background-color: rgba(241, 245, 249, 0.8); /* slate-100 with some transparency */
+            backdrop-filter: blur(5px);
+        }
+
         .sticky-col::after {
             content: '';
             position: absolute;
@@ -130,7 +159,7 @@
                 <i data-lucide="shield-check" class="mx-auto h-12 w-12 text-violet-400 mb-4"></i>
                 <h1 class="text-2xl font-bold mb-2">Admin Access</h1>
                 <p class="text-slate-400 mb-6">Enter the admin secret to enable adding matches and editing players.</p>
-                <input type="password" id="admin-secret" class="w-full bg-slate-800/50 border border-slate-600 rounded-md px-4 py-2 text-center text-white focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Enter admin secret...">
+                <input type="password" id="admin-secret" class="w-full bg-slate-800/50 border border-slate-600 rounded-md px-4 py-2 text-center focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Enter admin secret...">
                 <div class="flex gap-4 mt-6">
                     <button id="start-readonly" class="flex-1 glass-button rounded-md py-2 px-4 font-semibold">Start in Read-Only Mode</button>
                     <button id="start-with-secret" class="flex-1 bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Continue</button>
@@ -142,8 +171,8 @@
         <div id="main-app" class="hidden">
             <header class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8">
                 <div class="text-center md:text-left mb-4 md:mb-0">
-                    <h1 class="text-4xl font-extrabold text-white">Volley Pro Stats</h1>
-                    <p class="text-slate-400">The ultimate tool for volleyball analytics</p>
+                    <h1 class="text-4xl font-extrabold">Volley Pro Stats</h1>
+                    <p class="text-muted-color">The ultimate tool for volleyball analytics</p>
                 </div>
                 <div id="admin-status" class="flex items-center gap-2 text-sm glass-card px-3 py-2">
                     <!-- Status will be injected here -->
@@ -192,11 +221,12 @@
                 playerStatsSort: { column: 'skill', direction: 'desc' },
                 adminSecret: null,
                 showInactive: false,
-                addMatchState: { teamA: [], teamB: [] },
+                theme: 'dark',
             },
 
             // --- INITIALIZATION ---
             init() {
+                this.initTheme();
                 this.setupSecretScreen();
                 lucide.createIcons();
             },
@@ -348,9 +378,6 @@
                         mainView.innerHTML = renderMap[tabName].call(this);
                         mainView.dataset.renderedTab = tabName;
                         this.attachEventListeners(tabName);
-                        if (tabName === 'admin') {
-                            this.updateAddMatchView();
-                        }
                         lucide.createIcons();
                     } catch (error) {
                          console.error(`Failed to render tab "${tabName}":`, error);
@@ -394,10 +421,8 @@
                 }
                 if (viewName === 'admin') {
                      document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
-                     document.getElementById('player-pool')?.addEventListener('click', e => this.handleAddMatchPlayerClick(e));
-                     document.getElementById('teamA-list')?.addEventListener('click', e => this.handleAddMatchPlayerClick(e));
-                     document.getElementById('teamB-list')?.addEventListener('click', e => this.handleAddMatchPlayerClick(e));
                      document.getElementById('backup-btn')?.addEventListener('click', () => this.downloadBackup());
+                     document.getElementById('theme-toggle')?.addEventListener('change', e => this.toggleTheme(e.target.checked));
                 }
                 if (['leaderboard', 'player_stats'].includes(viewName)) {
                     document.querySelectorAll('#main-view [data-player-name]').forEach(el => {
@@ -517,7 +542,6 @@
             },
             
             renderAdmin() {
-                this.state.addMatchState = { teamA: [], teamB: [] };
                 return this.templates.adminWrapper.call(this);
             },
 
@@ -538,7 +562,7 @@
                 const p2Name = document.getElementById('h2h-player2').value;
                 const resultsDiv = document.getElementById('h2h-results');
                 if (!p1Name || !p2Name || p1Name === p2Name) {
-                    resultsDiv.innerHTML = '<p class="text-center text-slate-400 mt-8">Select two different players to compare.</p>';
+                    resultsDiv.innerHTML = '<p class="text-center text-muted-color mt-8">Select two different players to compare.</p>';
                     return;
                 }
                 const stats1 = this.state.data.playerStats[p1Name];
@@ -592,7 +616,7 @@
                 Object.entries(rankThresholds).forEach(([rank, skill]) => {
                      annotations[`line-${rank}`] = {
                         type: 'line', yMin: skill, yMax: skill,
-                        borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderDash: [5, 5],
+                        borderColor: 'rgba(128,128,128,0.15)', borderWidth: 1, borderDash: [5, 5],
                         label: {
                             content: rank, display: true, position: 'start',
                             backgroundColor: 'rgba(15, 23, 42, 0.8)', color: '#d1d5db',
@@ -615,7 +639,7 @@
                         maintainAspectRatio: false,
                         scales: {
                             x: { display: false },
-                            y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                            y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(128,128,128, 0.1)' } }
                         },
                         interaction: { mode: 'index', intersect: false },
                         plugins: {
@@ -684,7 +708,7 @@
                     const postSkill = historyEntry.mu - 3 * historyEntry.sigma;
                     const skillChange = postSkill - preSkill;
                     const isTeamA = match.teamA.includes(playerName);
-                    const won = (isTeamA && match.scoreA > match.scoreB) || (!isTeamA && match.scoreB > match.scoreA);
+                    const won = (isTeamA && match.scoreA > match.scoreB) || (!isA && match.scoreB > match.scoreA);
                     return this.templates.playerMatchHistoryRow(match, matchId, won, skillChange);
                 }).join('');
             },
@@ -791,52 +815,27 @@
             },
 
             // --- API ACTIONS & ADMIN HELPERS ---
-            handleAddMatchPlayerClick(e) {
-                const button = e.target.closest('button[data-player]');
-                if (!button) return;
-
-                const player = button.dataset.player;
-                const currentTeam = button.dataset.team;
-
-                if (currentTeam === 'pool') {
-                    // Default to adding to the team with fewer players
-                    if (this.state.addMatchState.teamA.length <= this.state.addMatchState.teamB.length) {
-                        this.state.addMatchState.teamA.push(player);
-                    } else {
-                        this.state.addMatchState.teamB.push(player);
-                    }
-                } else if (currentTeam === 'A') {
-                    this.state.addMatchState.teamA = this.state.addMatchState.teamA.filter(p => p !== player);
-                } else if (currentTeam === 'B') {
-                    this.state.addMatchState.teamB = this.state.addMatchState.teamB.filter(p => p !== player);
-                }
-                
-                this.updateAddMatchView();
-            },
-
-            updateAddMatchView() {
-                document.getElementById('teamA-list').innerHTML = this.templates.addMatchTeamList(this.state.addMatchState.teamA, 'A');
-                document.getElementById('teamB-list').innerHTML = this.templates.addMatchTeamList(this.state.addMatchState.teamB, 'B');
-                document.getElementById('player-pool').innerHTML = this.templates.addMatchPlayerPool.call(this);
-            },
-            
             async addMatch() {
                  if (!this.state.adminSecret) {
                     document.getElementById('add-match-error').textContent = 'Admin secret required.';
                     return;
                 }
                 const form = document.getElementById('add-match-form');
+                const parsePlayers = str => str.split(',').map(p => p.trim()).filter(Boolean);
                 const payload = {
                     secret: this.state.adminSecret,
-                    teamA: this.state.addMatchState.teamA,
-                    teamB: this.state.addMatchState.teamB,
+                    teamA: parsePlayers(form.elements.teamA.value),
+                    teamB: parsePlayers(form.elements.teamB.value),
                     scoreA: parseInt(form.elements.scoreA.value),
                     scoreB: parseInt(form.elements.scoreB.value),
                     ts: Date.now()
                 };
                 const errorDiv = document.getElementById('add-match-error');
                 if (payload.teamA.length === 0 || payload.teamB.length === 0 || isNaN(payload.scoreA) || isNaN(payload.scoreB)) {
-                    errorDiv.textContent = 'Please form teams and enter scores.'; return;
+                    errorDiv.textContent = 'Please fill all fields correctly.'; return;
+                }
+                 if(new Set([...payload.teamA, ...payload.teamB]).size !== payload.teamA.length + payload.teamB.length) {
+                    errorDiv.textContent = "A player cannot be on both teams."; return;
                 }
                 try {
                     const response = await fetch('/api/add_match', {
@@ -845,8 +844,6 @@
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.error || 'Server error');
                     form.reset();
-                    this.state.addMatchState = { teamA: [], teamB: [] };
-                    this.updateAddMatchView();
                     errorDiv.textContent = '';
                     await this.fetchData(false);
                     this.activateTab('leaderboard');
@@ -864,12 +861,36 @@
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
             },
+            
+            initTheme() {
+                const savedTheme = localStorage.getItem('volley-theme') || 'dark';
+                this.state.theme = savedTheme;
+                this.applyTheme();
+            },
+
+            toggleTheme(isLight) {
+                this.state.theme = isLight ? 'light' : 'dark';
+                localStorage.setItem('volley-theme', this.state.theme);
+                this.applyTheme();
+            },
+
+            applyTheme() {
+                if (this.state.theme === 'light') {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                }
+                // Force Chart.js to re-render with new colors
+                if(this.state.data) this.activateTab(this.state.activeTab, true);
+            },
 
             // --- HTML TEMPLATES ---
             templates: {
-                loader: message => `<div class="text-center py-20"><div class="mx-auto h-12 w-12 border-4 border-t-violet-500 border-slate-600 rounded-full animate-spin"></div><p class="mt-4 text-slate-400">${message}</p></div>`,
-                error: message => `<div class="glass-card p-8 text-center"><i data-lucide="alert-triangle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">An Error Occurred</h3><p class="text-slate-400 mt-2">${message}</p></div>`,
-                errorModal: message => `<div class="text-center"><i data-lucide="shield-off" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">Permission Denied</h3><p class="text-slate-400 mt-2">${message}</p><button class="close-modal-btn mt-6 glass-button rounded-md py-2 px-6 font-semibold">Close</button></div>`,
+                loader: message => `<div class="text-center py-20"><div class="mx-auto h-12 w-12 border-4 border-t-violet-500 border-slate-600 rounded-full animate-spin"></div><p class="mt-4 text-muted-color">${message}</p></div>`,
+                error: message => `<div class="glass-card p-8 text-center"><i data-lucide="alert-triangle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">An Error Occurred</h3><p class="text-muted-color mt-2">${message}</p></div>`,
+                errorModal: message => `<div class="text-center"><i data-lucide="shield-off" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">Permission Denied</h3><p class="text-muted-color mt-2">${message}</p><button class="close-modal-btn mt-6 glass-button rounded-md py-2 px-6 font-semibold">Close</button></div>`,
                 leaderboardWrapper: (listHtml, showInactiveChecked) => `<div><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Player Leaderboard</h2><label class="flex items-center text-sm cursor-pointer text-slate-300"><input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>Show Inactive</label></div><div class="glass-card"><ul id="leaderboard-list">${listHtml}</ul></div></div>`,
                 leaderboardRow: (player, displayName, rank, rankInfo, isInactive, change) => {
                     let changeHtml = '';
@@ -883,10 +904,10 @@
                     return `
                     <li class="flex items-center justify-between p-4 border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer ${isInactive ? 'opacity-50' : ''}" data-player-name="${player.name}">
                         <div class="flex items-center gap-4">
-                            <span class="text-lg font-bold text-slate-400 w-6 text-center">${rank}</span>
+                            <span class="text-lg font-bold text-muted-color w-6 text-center">${rank}</span>
                              <div>
-                                <p class="font-bold text-lg text-white">${displayName}</p>
-                                <p class="text-sm text-slate-400">Skill: ${player.skill.toFixed(2)}</p>
+                                <p class="font-bold text-lg">${displayName}</p>
+                                <p class="text-sm text-muted-color">Skill: ${player.skill.toFixed(2)}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-4">
@@ -905,7 +926,7 @@
                                         ${['name', 'skill', 'peakSkill', 'winRate', 'total', 'wins', 'losses', 'longestWinStreak', 'currentStreak'].map(col => {
                                             const labels = {name: 'Player', skill: 'Skill', peakSkill: 'Peak Skill', winRate: 'Win %', total: 'Played', wins: 'Wins', losses: 'Losses', longestWinStreak: 'Best Streak', currentStreak: 'Streak'};
                                             const thClass = col === 'name' ? 'sticky-col' : '';
-                                            return `<th class="p-3 text-xs font-semibold text-slate-400 uppercase tracking-wider ${thClass}">
+                                            return `<th class="p-3 text-xs font-semibold text-muted-color uppercase tracking-wider ${thClass}">
                                                 <span class="sortable-header ${sortCol === col ? (sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : ''}" data-sort-by="${col}">${labels[col]}</span>
                                             </th>`
                                         }).join('')}
@@ -930,11 +951,11 @@
                         <td class="p-3 font-semibold ${streakColor}">${p.currentStreak.count > 0 ? `${p.currentStreak.count}${p.currentStreak.type}` : '-'}</td>
                     </tr>`
                 },
-                head2headWrapper: playerNames => `<div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50 text-white"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}</div><div id="h2h-results"><p class="text-center text-slate-400 mt-8">Select two players to compare.</p></div></div>`,
+                head2headWrapper: playerNames => `<div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}</div><div id="h2h-results"><p class="text-center text-muted-color mt-8">Select two different players to compare.</p></div></div>`,
                 head2headResults: (s1, s2, p1Wins, p2Wins, total, r1, r2) => {
                     const compare = (v1, v2, higherIsBetter = true) => {
                         const val1 = parseFloat(v1) || 0, val2 = parseFloat(v2) || 0;
-                        if (val1 === val2) return ['text-slate-400', 'text-slate-400'];
+                        if (Math.abs(val1 - val2) < 0.01) return ['text-slate-400', 'text-slate-400'];
                         const p1Better = higherIsBetter ? val1 > val2 : val1 < val2;
                         return p1Better ? ['text-green-400', 'text-red-400'] : ['text-red-400', 'text-green-400'];
                     };
@@ -948,12 +969,12 @@
                         winRate: compare(s1.winRate, s2.winRate), streak: compare(s1.longestWinStreak, s2.longestWinStreak),
                         current: compareStreak(s1.currentStreak, s2.currentStreak)
                     };
-                    const h2hRecord = total > 0 ? `<div class="bg-slate-900/50 p-4 rounded-lg inline-block"><p class="text-4xl font-bold"><span class="${p1Wins > p2Wins ? 'text-green-400' : p1Wins < p2Wins ? 'text-red-400' : 'text-slate-400'}">${p1Wins}</span> - <span class="${p2Wins > p1Wins ? 'text-green-400' : p2Wins < p1Wins ? 'text-red-400' : 'text-slate-400'}">${p2Wins}</span></p><p class="text-sm text-slate-400">in ${total} matches</p></div>` : `<div class="bg-slate-900/50 p-4 rounded-lg"><p class="text-slate-400">No matches found against each other.</p></div>`;
+                    const h2hRecord = total > 0 ? `<div class="bg-slate-900/50 p-4 rounded-lg inline-block"><p class="text-4xl font-bold"><span class="${p1Wins > p2Wins ? 'text-green-400' : p1Wins < p2Wins ? 'text-red-400' : 'text-slate-400'}">${p1Wins}</span> - <span class="${p2Wins > p1Wins ? 'text-green-400' : p2Wins < p1Wins ? 'text-red-400' : 'text-slate-400'}">${p2Wins}</span></p><p class="text-sm text-muted-color">in ${total} matches</p></div>` : `<div class="bg-slate-900/50 p-4 rounded-lg"><p class="text-muted-color">No matches found against each other.</p></div>`;
                     return `<div class="space-y-6 mt-8"><div class="text-center"><h3 class="text-xl font-semibold mb-2">Direct Confrontation</h3>${h2hRecord}</div><div class="overflow-x-auto"><table class="w-full text-center">
                         <thead class="border-b-2 border-slate-700/50">
                             <tr class="text-lg font-bold">
                                 <th class="p-3"><div>${s1.name}</div><div class="text-xs font-normal mt-1"><span class="rank-badge ${r1.class}">${r1.name}</span></div></th>
-                                <th class="text-sm font-semibold text-slate-400 w-1/3 p-3">Stat</th>
+                                <th class="text-sm font-semibold text-muted-color w-1/3 p-3">Stat</th>
                                 <th class="p-3"><div>${s2.name}</div><div class="text-xs font-normal mt-1"><span class="rank-badge ${r2.class}">${r2.name}</span></div></th>
                             </tr>
                         </thead>
@@ -982,7 +1003,7 @@
                             lastValue = value;
                             listHtml += `<li class="flex justify-between"><span class="font-semibold"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color}">${record.format ? record.format(p[record.key]) : p[record.key]}</span></li>`;
                         });
-                        return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg text-slate-200 mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
+                        return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
                     };
                     return `
                     <div id="records-content" class="space-y-8">
@@ -996,7 +1017,7 @@
                                     { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<strong>${superlatives.best_performance?.player}</strong> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
                                 ].map(item => {
                                     const match = item.superlative?.match_id !== undefined ? matches[item.superlative.match_id] : null;
-                                    return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-slate-400 mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : '';
+                                    return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-muted-color mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : '';
                                 }).join('')}
                             </div>
                         </div>
@@ -1004,7 +1025,7 @@
                            ${[
                                { title: 'Top Duos', headers: ['Players', 'Record', 'Win %'], data: duos, render: d => `<tr><td class="p-3 font-semibold">${d.players.join(' & ')}</td><td class="p-3">${d.wins}-${d.total-d.wins}</td><td class="p-3 font-bold ${this.getWinRateColor( (d.wins/d.total)*100 )}">${((d.wins/d.total)*100).toFixed(1)}%</td></tr>`},
                                { title: 'Biggest Rivalries', headers: ['Players', 'H2H', 'Total'], data: rivalries, render: r => `<tr><td class="p-3 font-semibold">${r.players[0]} vs ${r.players[1]}</td><td class="p-3 font-bold text-violet-400">${r.p1_wins} - ${r.p2_wins}</td><td class="p-3">${r.total}</td></tr>` }
-                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-slate-400">Min. 3 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-slate-400 uppercase">${table.headers.map(h => `<th class="p-3">${h}</th>`).join('')}</tr></thead><tbody>${(table.data || []).map(table.render).join('')}</tbody></table></div></div>`).join('')}
+                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-muted-color">Min. 3 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-muted-color uppercase">${table.headers.map(h => `<th class="p-3">${h}</th>`).join('')}</tr></thead><tbody>${(table.data || []).map(table.render).join('')}</tbody></table></div></div>`).join('')}
                         </div>
                         <div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Player Records</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${playerRecords.map(record => recordListTemplate(record)).join('')}</div></div>
                     </div>`},
@@ -1012,19 +1033,19 @@
                     <div class="glass-card p-4 hover:border-slate-600 transition cursor-pointer" data-match-id="${matchId}">
                         <div class="flex justify-between items-start mb-2">
                             <div>
-                                 <p class="text-xs text-slate-500 font-bold">MATCH #${matchId + 1}</p>
+                                 <p class="text-xs text-muted-color font-bold">MATCH #${matchId + 1}</p>
                                 <p class="font-extrabold text-2xl tracking-tight">${match.scoreA} - ${match.scoreB}</p>
-                                <p class="text-xs text-slate-500">${new Date(match.ts).toLocaleDateString()}</p>
+                                <p class="text-xs text-muted-color">${new Date(match.ts).toLocaleDateString()}</p>
                             </div>
-                            <i data-lucide="swords" class="h-5 w-5 text-slate-500"></i>
+                            <i data-lucide="swords" class="h-5 w-5 text-muted-color"></i>
                         </div>
                         <div class="grid grid-cols-2 gap-3 text-xs">
-                            <div class="p-2 rounded ${match.scoreA > match.scoreB ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreA > match.scoreB ? 'text-green-300' : ''}">Team A</p><p class="text-slate-400">${match.teamA.join(', ')}</p></div>
-                            <div class="p-2 rounded ${match.scoreB > match.scoreA ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreB > match.scoreA ? 'text-green-300' : ''}">Team B</p><p class="text-slate-400">${match.teamB.join(', ')}</p></div>
+                            <div class="p-2 rounded ${match.scoreA > match.scoreB ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreA > match.scoreB ? 'text-green-300' : ''}">Team A</p><p class="text-muted-color">${match.teamA.join(', ')}</p></div>
+                            <div class="p-2 rounded ${match.scoreB > match.scoreA ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreB > match.scoreA ? 'text-green-300' : ''}">Team B</p><p class="text-muted-color">${match.teamB.join(', ')}</p></div>
                         </div>
                     </div>`,
-                noHistory: () => `<div class="glass-card p-8 text-center"><h2 class="text-2xl font-bold mb-2">No History Yet</h2><p class="text-slate-400">Play some matches to see historical rankings.</p></div>`,
-                historyWrapper: maxMatchIndex => `<div class="glass-card p-6"><h2 class="text-2xl font-bold">Historical Leaderboard</h2><p class="text-slate-400 mb-4">Drag the slider to view rankings after each match.</p><div class="flex items-center gap-4 mb-4"><input type="range" id="history-slider" class="w-full" min="0" max="${maxMatchIndex}" value="${maxMatchIndex}"><span id="history-match-label" class="font-semibold whitespace-nowrap"></span></div><div id="historical-leaderboard-display" class="max-h-[50vh] overflow-y-auto pr-2"></div></div>`,
+                noHistory: () => `<div class="glass-card p-8 text-center"><h2 class="text-2xl font-bold mb-2">No History Yet</h2><p class="text-muted-color">Play some matches to see historical rankings.</p></div>`,
+                historyWrapper: maxMatchIndex => `<div class="glass-card p-6"><h2 class="text-2xl font-bold">Historical Leaderboard</h2><p class="text-muted-color mb-4">Drag the slider to view rankings after each match.</p><div class="flex items-center gap-4 mb-4"><input type="range" id="history-slider" class="w-full" min="0" max="${maxMatchIndex}" value="${maxMatchIndex}"><span id="history-match-label" class="font-semibold whitespace-nowrap"></span></div><div id="historical-leaderboard-display" class="max-h-[50vh] overflow-y-auto pr-2"></div></div>`,
                 historicalLeaderboardRow: (player, rank, rankInfo) => {
                     let changeHtml = '';
                     if (player.change && player.change !== 'new' && player.change !== 0) {
@@ -1035,8 +1056,8 @@
                     return `
                     <li class="flex items-center justify-between p-3 bg-slate-800/30 rounded-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-md font-bold text-slate-400 w-6 text-center">${rank}</span>
-                            <div><p class="font-semibold">${player.name}</p><p class="text-xs text-slate-400">Skill: ${player.skill.toFixed(2)}</p></div>
+                            <span class="text-md font-bold text-muted-color w-6 text-center">${rank}</span>
+                            <div><p class="font-semibold">${player.name}</p><p class="text-xs text-muted-color">Skill: ${player.skill.toFixed(2)}</p></div>
                         </div>
                         <div class="flex items-center gap-3">
                            ${changeHtml}
@@ -1045,55 +1066,57 @@
                     </li>`
                 },
                 adminWrapper: function() {
-                    return `
+                     return `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div class="glass-card p-6">
                             <h2 class="text-2xl font-bold mb-4">Add a New Match</h2>
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div id="teamA-list" class="bg-slate-800/50 p-3 rounded-lg min-h-[100px] border border-dashed border-sky-500/50"></div>
-                                <div id="teamB-list" class="bg-slate-800/50 p-3 rounded-lg min-h-[100px] border border-dashed border-rose-500/50"></div>
-                            </div>
-                            <div id="player-pool" class="mb-4 bg-slate-900/50 p-3 rounded-lg max-h-48 overflow-y-auto"></div>
-                            <form id="add-match-form">
+                            <form id="add-match-form" class="space-y-4">
+                                <div>
+                                    <label class="block font-medium mb-1 text-slate-300">Team A</label>
+                                    <textarea name="teamA" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block font-medium mb-1 text-slate-300">Team B</label>
+                                    <textarea name="teamB" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea>
+                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
                                     <div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
                                 </div>
-                                <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition mt-4">Record Match</button>
-                                <div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4 mt-2"></div>
+                                <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button>
+                                <div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4"></div>
                             </form>
                         </div>
                         <div class="glass-card p-6">
                             <h2 class="text-2xl font-bold mb-4">Admin Tools</h2>
-                            <div class="space-y-4 text-sm text-slate-300">
-                               <p>Click on an available player to add them to a team. Click a player on a team to move them back to the pool.</p>
-                                <button id="backup-btn" class="w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Download Full Backup</button>
+                            <div class="space-y-4 text-sm">
+                               <button id="backup-btn" class="w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Download Full Backup</button>
+                               
+                               <div class="flex justify-between items-center pt-4 border-t border-slate-700/50">
+                                   <label for="theme-toggle" class="font-medium">Theme</label>
+                                   <div class="flex items-center gap-2">
+                                       <i data-lucide="sun"></i>
+                                       <label class="relative inline-flex items-center cursor-pointer">
+                                         <input type="checkbox" id="theme-toggle" class="sr-only peer" ${this.state.theme === 'dark' ? 'checked' : ''}>
+                                         <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-violet-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                                       </label>
+                                       <i data-lucide="moon"></i>
+                                   </div>
+                               </div>
                             </div>
                         </div>
                     </div>`
                 },
-                addMatchTeamList: (team, teamName) => {
-                    const header = `<h3 class="font-bold mb-2 text-center">Team ${teamName}</h3>`;
-                    if (team.length === 0) return `${header}<p class="text-xs text-slate-500 text-center">Click players from the pool below to add them.</p>`;
-                    return header + team.map(p => `<button data-player="${p}" data-team="${teamName}" class="w-full text-left bg-slate-700/50 p-2 rounded-md mb-2 hover:bg-slate-700 transition">${p}</button>`).join('');
-                },
-                addMatchPlayerPool: function() {
-                    const allPlayers = Object.keys(this.state.data.playerStats).sort();
-                    const assignedPlayers = new Set([...this.state.addMatchState.teamA, ...this.state.addMatchState.teamB]);
-                    const availablePlayers = allPlayers.filter(p => !assignedPlayers.has(p));
-                    if(availablePlayers.length === 0) return `<p class="text-xs text-slate-500 text-center">All players assigned.</p>`;
-                    return `<div class="flex flex-wrap gap-2">${availablePlayers.map(p => `<button data-player="${p}" data-team="pool" class="glass-button text-sm px-3 py-1 rounded-full">${p}</button>`).join('')}</div>`;
-                },
-                playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `<div class="glass-card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-start mb-4"><button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to ${originTab.replace('_', ' ')}</button><button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button></div><div class="flex flex-wrap items-center gap-4 mb-6"><h2 class="text-3xl font-bold">${displayName}</h2><span class="rank-badge ${rank.class}">${rank.name}</span></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">${Object.entries({Skill: stats.skill.toFixed(2),"Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},"Win Rate": `${stats.winRate}%`,Record: `${stats.wins}-${stats.losses}`,"Best Streak": `${stats.longestWinStreak}W`,"Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}}).map(([label, data]) => {const value = typeof data === 'object' ? data.value : data; const glowClass = data.glow ? 'peak-skill-glow' : ''; const colorClass = data.color || ''; return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-slate-400 uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`}).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div><h3 class="text-xl font-semibold mb-2">Skill History</h3><div class="h-64"><canvas id="elo-chart"></canvas></div></div><div><h3 class="text-xl font-semibold mb-2">Recent Matches</h3><div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div></div></div></div>`,
-                playerMatchHistoryRow: (match, matchId, won, skillChange) => `<div data-match-id="${matchId}" class="bg-slate-800/50 p-3 rounded-md flex justify-between items-center hover:bg-slate-800/80 cursor-pointer transition"><div><p class="text-sm font-semibold">${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="text-xs text-slate-400">${new Date(match.ts).toLocaleDateString()}</p></div><div class="text-right"><p class="font-bold text-lg">${match.scoreA}-${match.scoreB}</p><div class="flex items-center justify-end gap-2"><span class="text-xs font-bold ${won ? 'text-green-400' : 'text-red-400'}">${won ? 'WIN' : 'LOSS'}</span><span class="text-xs font-semibold ${skillChange >= 0 ? 'text-green-400' : 'text-red-400'}">${skillChange >= 0 ? '+' : ''}${skillChange.toFixed(2)}</span></div></div></div>`,
+                playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `<div class="glass-card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-start mb-4"><button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to ${originTab.replace('_', ' ')}</button><button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button></div><div class="flex flex-wrap items-center gap-4 mb-6"><h2 class="text-3xl font-bold">${displayName}</h2><span class="rank-badge ${rank.class}">${rank.name}</span></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">${Object.entries({Skill: stats.skill.toFixed(2),"Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},"Win Rate": `${stats.winRate}%`,Record: `${stats.wins}-${stats.losses}`,"Best Streak": `${stats.longestWinStreak}W`,"Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}}).map(([label, data]) => {const value = typeof data === 'object' ? data.value : data; const glowClass = data.glow ? 'peak-skill-glow' : ''; const colorClass = data.color || ''; return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-muted-color uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`}).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div><h3 class="text-xl font-semibold mb-2">Skill History</h3><div class="h-64"><canvas id="elo-chart"></canvas></div></div><div><h3 class="text-xl font-semibold mb-2">Recent Matches</h3><div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div></div></div></div>`,
+                playerMatchHistoryRow: (match, matchId, won, skillChange) => `<div data-match-id="${matchId}" class="bg-slate-800/50 p-3 rounded-md flex justify-between items-center hover:bg-slate-800/80 cursor-pointer transition"><div><p class="text-sm font-semibold">${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="text-xs text-muted-color">${new Date(match.ts).toLocaleDateString()}</p></div><div class="text-right"><p class="font-bold text-lg">${match.scoreA}-${match.scoreB}</p><div class="flex items-center justify-end gap-2"><span class="text-xs font-bold ${won ? 'text-green-400' : 'text-red-400'}">${won ? 'WIN' : 'LOSS'}</span><span class="text-xs font-semibold ${skillChange >= 0 ? 'text-green-400' : 'text-red-400'}">${skillChange >= 0 ? '+' : ''}${skillChange.toFixed(2)}</span></div></div></div>`,
                 matchModal: (match, teamAChanges, teamBChanges, winProbA, matchId) => {
-                    const renderTeam = changes => changes.map(p => `<li class="flex justify-between items-center py-2"><p class="font-semibold">${p.name}</p><div class="text-right"><span class="font-bold ${p.change > 0 ? 'text-green-400' : 'text-red-400'}">${p.change > 0 ? '+' : ''}${p.change}</span><p class="text-xs text-slate-400">Skill: ${p.skill}</p></div></li>`).join('');
+                    const renderTeam = changes => changes.map(p => `<li class="flex justify-between items-center py-2"><p class="font-semibold">${p.name}</p><div class="text-right"><span class="font-bold ${p.change > 0 ? 'text-green-400' : 'text-red-400'}">${p.change > 0 ? '+' : ''}${p.change}</span><p class="text-xs text-muted-color">Skill: ${p.skill}</p></div></li>`).join('');
                     const matchDate = new Date(match.ts);
                     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
                     return `
                         <div class="flex justify-between items-start mb-4">
-                             <div><h2 class="text-2xl font-bold">Match #${parseInt(matchId) + 1}</h2><p class="text-sm text-slate-400">${matchDate.toLocaleDateString(undefined, dateOptions)}</p></div>
-                            <button class="close-modal-btn text-slate-400 hover:text-white"><i data-lucide="x" class="h-6 w-6"></i></button>
+                             <div><h2 class="text-2xl font-bold">Match #${parseInt(matchId) + 1}</h2><p class="text-sm text-muted-color">${matchDate.toLocaleDateString(undefined, dateOptions)}</p></div>
+                            <button class="close-modal-btn text-muted-color hover:text-color"><i data-lucide="x" class="h-6 w-6"></i></button>
                         </div>
                         <div class="text-center mb-6"><p class="font-extrabold text-5xl">${match.scoreA} - ${match.scoreB}</p></div>
                         <div class="glass-card p-4 mb-6">
@@ -1107,8 +1130,8 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">${[teamAChanges, teamBChanges].map((changes, i) => `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-center mb-2">Team ${i === 0 ? 'A' : 'B'} Skill Changes</h3><ul class="divide-y divide-slate-700/50">${renderTeam(changes)}</ul></div>`).join('')}</div>`;
                 },
-                editPlayerModal: (playerName, details) => `<form id="edit-player-form"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Edit Player</h2><button type="button" class="close-modal-btn text-slate-400 hover:text-white"><i data-lucide="x" class="h-6 w-6"></i></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-slate-300">Name</label><input type="text" name="newName" value="${playerName}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium text-slate-300">Last Name</label><input type="text" name="lastName" value="${details.lastName || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium text-slate-300">Abbreviation</label><input type="text" name="abbrev" value="${details.abbrev || ''}" maxlength="3" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium text-slate-300">Number</label><input type="text" name="number" value="${details.number || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div></div><div class="mt-6 flex justify-end gap-3"><button type="button" class="close-modal-btn glass-button rounded-md py-2 px-4 font-semibold">Cancel</button><button type="submit" class="bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Save Changes</button></div><p id="edit-player-error" class="text-red-400 text-right text-sm font-semibold h-4 mt-2"></p></form>`,
-                guide: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-slate-300">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-slate-300">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-slate-300">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold text-slate-200">${tier.skill}</span></li>`).join('')}</ul></div></div>`
+                editPlayerModal: (playerName, details) => `<form id="edit-player-form"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Edit Player</h2><button type="button" class="close-modal-btn text-muted-color hover:text-color"><i data-lucide="x" class="h-6 w-6"></i></button></div><div class="space-y-4"><div><label class="block text-sm font-medium">Name</label><input type="text" name="newName" value="${playerName}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Last Name</label><input type="text" name="lastName" value="${details.lastName || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Abbreviation</label><input type="text" name="abbrev" value="${details.abbrev || ''}" maxlength="3" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Number</label><input type="text" name="number" value="${details.number || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div></div><div class="mt-6 flex justify-end gap-3"><button type="button" class="close-modal-btn glass-button rounded-md py-2 px-4 font-semibold">Cancel</button><button type="submit" class="bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Save Changes</button></div><p id="edit-player-error" class="text-red-400 text-right text-sm font-semibold h-4 mt-2"></p></form>`,
+                guide: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-muted-color">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-muted-color">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-muted-color">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold">${tier.skill}</span></li>`).join('')}</ul></div></div>`
             }
         };
 
@@ -1118,5 +1141,4 @@
     </script>
 </body>
 </html>
-
 
