@@ -19,14 +19,13 @@
     <style>
         :root {
             --background-start-rgb: 15, 23, 42; /* slate-900 */
-            --glass-color: rgba(255, 255, 255, 0.05);
+            --glass-color: rgba(30, 41, 59, 0.7); /* slate-800 with opacity */
             --border-color: rgba(255, 255, 255, 0.1);
             --accent-color: #8b5cf6; /* violet-500 */
             --text-color: #e2e8f0; /* slate-200 */
             --text-muted-color: #94a3b8; /* slate-400 */
         }
 
-        /* Prevent pull-to-refresh and other browser gestures */
         html, body {
             overscroll-behavior: none;
             position: fixed;
@@ -43,7 +42,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Main scrollable container */
         .app-container {
             height: 100vh;
             overflow-y: auto;
@@ -51,7 +49,10 @@
             padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
-        /* Glassmorphism Styles */
+        #app {
+            padding-bottom: 10rem;
+        }
+
         .glass-card {
             background-color: var(--glass-color);
             backdrop-filter: blur(20px);
@@ -72,13 +73,11 @@
         .tab-active { color: var(--text-color); }
         .tab-active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background-color: var(--accent-color); border-radius: 2px; }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: rgba(128,128,128,0.2); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background-color: rgba(128,128,128,0.3); }
 
-        /* Rank Badge Styles */
         .rank-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
         .rank-master { background-color: #fda4af; color: #881337; }
         .rank-diamond { background-color: #d8b4fe; color: #581c87; }
@@ -93,19 +92,32 @@
             100% { box-shadow: 0 0 3px #fcd34d; }
         }
         .peak-skill-glow { animation: glowing 2s infinite; border: 1px solid #fbbf24; }
+
+        .sticky-col {
+            position: -webkit-sticky;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+        #player-stats-table-head .sticky-col {
+            background-color: var(--glass-color);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #player-stats-table-body .sticky-col {
+            background: rgb(var(--background-start-rgb));
+        }
     </style>
 </head>
 <body>
 
     <div id="app-container" class="app-container">
         <div id="app" class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-
-            <!-- Splash Screen for Admin Secret -->
             <div id="secret-screen" class="min-h-[80vh] flex items-center justify-center">
-                <div class="glass-card p-8 w-full max-w-md text-center">
+                 <div class="glass-card p-8 w-full max-w-md text-center">
                     <i data-lucide="shield-check" class="mx-auto h-12 w-12 text-violet-400 mb-4"></i>
                     <h1 class="text-2xl font-bold mb-2">Admin Access</h1>
-                    <p class="text-slate-400 mb-6">Enter the admin secret to enable adding matches and editing players.</p>
+                    <p class="text-slate-400 mb-6">Enter the admin secret to enable data management features.</p>
                     <input type="password" id="admin-secret" class="w-full bg-slate-800/50 border border-slate-600 rounded-md px-4 py-2 text-center focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Enter admin secret...">
                     <div class="flex gap-4 mt-6">
                         <button id="start-readonly" class="flex-1 glass-button rounded-md py-2 px-4 font-semibold">Start in Read-Only Mode</button>
@@ -114,19 +126,15 @@
                 </div>
             </div>
 
-            <!-- Main Application (Initially hidden) -->
             <div id="main-app" class="hidden">
                 <header class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8">
                     <div class="text-center md:text-left mb-4 md:mb-0">
                         <h1 class="text-4xl font-extrabold">Volley Pro Stats</h1>
                         <p class="text-muted-color">The ultimate tool for volleyball analytics</p>
                     </div>
-                    <div id="admin-status" class="flex items-center gap-2 text-sm glass-card px-3 py-2">
-                        <!-- Status will be injected here -->
-                    </div>
+                    <div id="admin-status" class="flex items-center gap-2 text-sm glass-card px-3 py-2"></div>
                 </header>
 
-                <!-- Tabs -->
                 <div class="mb-6 border-b border-slate-700/50">
                     <nav id="tabs" class="flex flex-nowrap overflow-x-auto -mb-px text-sm font-medium">
                         <a href="#" data-tab="leaderboard" class="tab py-4 px-3 md:px-4">Leaderboard</a>
@@ -139,36 +147,30 @@
                     </nav>
                 </div>
 
-                <!-- Content Area -->
-                <main id="content-wrapper">
-                    <!-- Tab Content will be dynamically rendered here -->
-                </main>
+                <main id="content-wrapper"></main>
             </div>
 
-            <!-- Generic Modal -->
             <div id="modal-backdrop" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-4 z-50">
-                <div id="modal-content" class="glass-card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <!-- Modal content will be injected here -->
-                </div>
+                <div id="modal-content" class="glass-card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"></div>
             </div>
-
         </div>
     </div>
 
     <script>
         const app = {
             state: {
-                data: null,
+                sourceData: { matches: [], playerDetails: {} },
+                processedData: null,
                 activeTab: 'leaderboard',
                 playerStatsSort: { column: 'skill', direction: 'desc' },
                 adminSecret: null,
                 showInactive: false,
-                // FIX: Add new state properties for weekly review
                 availableWeeks: [],
                 currentWeek: null,
+                hasUnsavedChanges: false,
             },
 
-            // --- INITIALIZATION ---
+            // --- INITIALIZATION & APP START ---
             init() {
                 this.setupSecretScreen();
                 lucide.createIcons();
@@ -192,28 +194,84 @@
                 this.renderAdminStatus();
                 this.setupTabListener();
                 this.setupDelegatedListeners();
-                await this.fetchData();
+                this.state.activeTab = this.state.adminSecret ? 'admin' : 'guide';
+                this.activateTab(this.state.activeTab);
             },
 
+            // --- DATA MANAGEMENT (CLIENT-SIDE) ---
+            async processData(showLoading = true) {
+                if (showLoading) {
+                   document.getElementById('content-wrapper').innerHTML = this.templates.loader('Calculating stats...');
+                }
+                try {
+                    const response = await fetch('/api/process_data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.state.sourceData)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    this.state.processedData = await response.json();
+
+                    if (this.state.processedData && this.state.processedData.weeklyData) {
+                        this.state.availableWeeks = Object.keys(this.state.processedData.weeklyData)
+                            .map(Number).sort((a, b) => b - a);
+
+                        if (!this.state.currentWeek || !this.state.availableWeeks.includes(this.state.currentWeek)) {
+                            this.state.currentWeek = this.state.availableWeeks[0] || null;
+                        }
+                    } else {
+                        this.state.availableWeeks = [];
+                        this.state.currentWeek = null;
+                    }
+                    this.activateTab(this.state.activeTab);
+                } catch (error) {
+                    console.error("Failed to process data:", error);
+                    document.getElementById('content-wrapper').innerHTML = this.templates.error('Could not process data. Ensure the backend is running.');
+                }
+            },
+
+            loadDataFromFile(file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (!data.matches || !data.playerDetails) {
+                            throw new Error("Invalid JSON structure.");
+                        }
+                        this.state.sourceData = data;
+                        this.state.hasUnsavedChanges = false;
+                        this.state.activeTab = 'leaderboard'; // Switch to a useful tab after loading
+                        this.processData();
+                    } catch (e) {
+                        alert('Error parsing JSON file: ' + e.message);
+                    }
+                };
+                reader.readAsText(file);
+            },
+
+            downloadData() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.sourceData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `volley-stats-pro-${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                this.state.hasUnsavedChanges = false;
+                this.activateTab('admin');
+            },
+
+            // --- EVENT LISTENERS ---
             setupDelegatedListeners() {
                 const appEl = document.getElementById('app');
                 appEl.addEventListener('click', (e) => {
                     const playerLink = e.target.closest('[data-player-name]');
                     const matchLink = e.target.closest('[data-match-id]');
                     const backButton = e.target.closest('#back-to-main');
-
                     if (e.target.closest('#modal-content')) return;
-
-                    if (playerLink) {
-                        e.preventDefault();
-                        this.renderPlayerDetail(playerLink.dataset.playerName);
-                    } else if (matchLink) {
-                        e.preventDefault();
-                        this.showMatchModal(matchLink.dataset.matchId);
-                    } else if (backButton) {
-                        e.preventDefault();
-                        this.activateTab(backButton.dataset.originTab);
-                    }
+                    if (playerLink) { e.preventDefault(); this.renderPlayerDetail(playerLink.dataset.playerName); }
+                    else if (matchLink) { e.preventDefault(); this.showMatchModal(matchLink.dataset.matchId); }
+                    else if (backButton) { e.preventDefault(); this.activateTab(backButton.dataset.originTab); }
                 });
             },
 
@@ -221,107 +279,16 @@
                 document.getElementById('tabs').addEventListener('click', (e) => {
                     e.preventDefault();
                     const tabLink = e.target.closest('[data-tab]');
-                    if (tabLink) {
-                        this.activateTab(tabLink.dataset.tab);
-                    }
+                    if (tabLink) this.activateTab(tabLink.dataset.tab);
                 });
             },
 
-            // --- DATA FETCHING & HANDLING ---
-            async fetchData(showLoading = true) {
-                if (showLoading) {
-                   document.getElementById('content-wrapper').innerHTML = this.templates.loader('Fetching latest stats...');
-                }
-                try {
-                    const response = await fetch('/api/data');
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    this.state.data = await response.json();
-
-                    // FIX: Initialize week-related state *after* fetching data
-                    if (this.state.data && this.state.data.weeklyData) {
-                        this.state.availableWeeks = Object.keys(this.state.data.weeklyData)
-                            .map(Number) // Ensure keys are numbers for correct sorting
-                            .sort((a, b) => b - a);
-                        this.state.currentWeek = this.state.availableWeeks.length > 0 ? this.state.availableWeeks[0] : null;
-                    } else {
-                        this.state.availableWeeks = [];
-                        this.state.currentWeek = null;
-                    }
-
-                    // On first load, default to Weekly Review if data exists, otherwise Leaderboard
-                    if (showLoading) {
-                        this.state.activeTab = this.state.availableWeeks.length > 0 ? 'weekly_review' : 'leaderboard';
-                    }
-
-                    this.activateTab(this.state.activeTab);
-
-                } catch (error) {
-                    console.error("Failed to fetch data:", error);
-                    document.getElementById('content-wrapper').innerHTML = this.templates.error('Could not load data from the server. Please ensure the backend is running and refresh the page.');
-                }
-            },
-
-            // --- VIEW MANAGEMENT & RENDERING ---
-            activateTab(tabName) {
-                if (!this.state.data) return;
-
-                // FIX: Add a guard clause to prevent rendering weekly review if no data is available.
-                if (tabName === 'weekly_review' && this.state.availableWeeks.length === 0) {
-                    document.getElementById('content-wrapper').innerHTML = this.templates.noWeeklyData();
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
-                    document.querySelector(`.tab[data-tab="weekly_review"]`)?.classList.add('tab-active');
-                    this.state.activeTab = tabName;
-                    lucide.createIcons();
-                    return;
-                }
-
-                this.state.activeTab = tabName;
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
-                document.querySelector(`.tab[data-tab="${tabName}"]`)?.classList.add('tab-active');
-
-                const contentWrapper = document.getElementById('content-wrapper');
-                const renderMap = {
-                    leaderboard: this.renderLeaderboard,
-                    player_stats: this.renderPlayerStatsTable,
-                    weekly_review: this.renderWeeklyReview,
-                    head2head: this.renderHead2Head,
-                    records: this.renderRecords,
-                    guide: this.templates.guide,
-                    admin: this.templates.adminWrapper,
-                };
-
-                try {
-                    contentWrapper.innerHTML = renderMap[tabName].call(this);
-                    this.attachEventListeners(tabName);
-                    lucide.createIcons();
-                } catch (error) {
-                     console.error(`Failed to render tab "${tabName}":`, error);
-                     contentWrapper.innerHTML = this.templates.error(`An error occurred while rendering this tab. Check the console for details.`);
-                     lucide.createIcons();
-                }
-            },
-
-            renderPlayerDetail(playerName) {
-                if (!this.state.data.playerStats[playerName]) {
-                    console.error(`Player not found: ${playerName}`);
-                    return;
-                }
-                const contentWrapper = document.getElementById('content-wrapper');
-                const stats = this.state.data.playerStats[playerName];
-                const details = this.state.data.playerDetails[playerName] || {};
-                const rank = this.getRankInfo(stats.skill);
-                const isPeak = stats.skill.toFixed(2) >= stats.peakSkill.toFixed(2);
-                const displayName = `${stats.name} ${details.lastName || ''} ${details.number ? `#${details.number}`: ''}`.trim();
-                const recentMatchesHtml = this.renderPlayerMatchHistory(playerName);
-
-                contentWrapper.innerHTML = this.templates.playerDetail(playerName, displayName, stats, rank, isPeak, this.state.activeTab, recentMatchesHtml);
-                this.renderEloChart(playerName);
-                this.attachEventListeners('playerDetail');
-                lucide.createIcons();
-            },
-
-            // --- EVENT LISTENER ATTACHMENT ---
             attachEventListeners(viewName) {
+                if (viewName === 'admin') {
+                    document.getElementById('load-data-input')?.addEventListener('change', e => this.loadDataFromFile(e.target.files[0]));
+                    document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
+                    document.getElementById('download-data-btn')?.addEventListener('click', () => this.downloadData());
+                }
                 if (viewName === 'leaderboard') {
                     document.getElementById('toggle-inactive')?.addEventListener('change', e => {
                         this.state.showInactive = e.target.checked;
@@ -337,11 +304,7 @@
                 if (viewName === 'head2head') {
                     document.getElementById('h2h-player1')?.addEventListener('change', () => this.updateHead2Head());
                     document.getElementById('h2h-player2')?.addEventListener('change', () => this.updateHead2Head());
-                    this.updateHead2Head(); // Initial render
-                }
-                if (viewName === 'admin') {
-                     document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
-                     document.getElementById('backup-btn')?.addEventListener('click', () => this.downloadBackup());
+                    this.updateHead2Head();
                 }
                  if (viewName === 'player_stats') {
                     document.querySelectorAll('.sortable-header').forEach(el => {
@@ -353,41 +316,82 @@
                 }
             },
 
-            // --- TAB-SPECIFIC RENDER FUNCTIONS ---
-            renderLeaderboard() {
-                const { leaderboard, playerStats, totalMatches, playerDetails } = this.state.data;
-                const inactivityThreshold = 15;
-                let playersToDisplay = this.state.showInactive
-                    ? leaderboard
-                    : leaderboard.filter(p => (totalMatches - 1 - playerStats[p.name].last_played) < inactivityThreshold);
+            // --- VIEW MANAGEMENT & RENDERING ---
+            activateTab(tabName) {
+                this.state.activeTab = tabName;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
+                document.querySelector(`.tab[data-tab="${tabName}"]`)?.classList.add('tab-active');
 
+                if (!this.state.processedData && !['guide', 'admin'].includes(tabName)) {
+                    document.getElementById('content-wrapper').innerHTML = this.templates.noDataLoaded();
+                    lucide.createIcons();
+                    return;
+                }
+
+                const contentWrapper = document.getElementById('content-wrapper');
+                const renderMap = {
+                    leaderboard: this.renderLeaderboard,
+                    player_stats: this.renderPlayerStatsTable,
+                    weekly_review: this.renderWeeklyReview,
+                    head2head: this.renderHead2Head,
+                    records: this.renderRecords,
+                    guide: this.templates.guide,
+                    admin: this.renderAdmin,
+                };
+
+                try {
+                    contentWrapper.innerHTML = renderMap[tabName].call(this);
+                    this.attachEventListeners(tabName);
+                    lucide.createIcons();
+                } catch (error) {
+                     console.error(`Failed to render tab "${tabName}":`, error);
+                     contentWrapper.innerHTML = this.templates.error(`An error occurred while rendering this tab.`);
+                }
+            },
+
+            renderPlayerDetail(playerName) {
+                if (!this.state.processedData.playerStats[playerName]) return;
+                const contentWrapper = document.getElementById('content-wrapper');
+                const stats = this.state.processedData.playerStats[playerName];
+                const details = this.state.processedData.playerDetails[playerName] || {};
+                const rank = this.getRankInfo(stats.skill);
+                const isPeak = stats.skill.toFixed(2) >= stats.peakSkill.toFixed(2);
+                const displayName = `${stats.name} ${details.lastName || ''} ${details.number ? `#${details.number}`: ''}`.trim();
+                const recentMatchesHtml = this.renderPlayerMatchHistory(playerName);
+                contentWrapper.innerHTML = this.templates.playerDetail(playerName, displayName, stats, rank, isPeak, this.state.activeTab, recentMatchesHtml);
+                this.renderEloChart(playerName);
+                this.attachEventListeners('playerDetail');
+                lucide.createIcons();
+            },
+
+            // --- TAB-SPECIFIC RENDER FUNCTIONS ---
+            renderAdmin() {
+                return this.templates.adminWrapper(this.state.adminSecret, this.state.sourceData.matches.length > 0, this.state.hasUnsavedChanges);
+            },
+
+            renderLeaderboard() {
+                const { leaderboard, playerStats, totalMatches, playerDetails } = this.state.processedData;
+                let playersToDisplay = this.state.showInactive ? leaderboard : leaderboard.filter(p => (totalMatches - 1 - playerStats[p.name].last_played) < 15);
                 let listHtml = '';
                 let lastSkill = -9999;
                 let rank = 0;
                 playersToDisplay.forEach((player, index) => {
                     const currentSkill = player.skill.toFixed(3);
-                    if (currentSkill !== lastSkill) {
-                        rank = index + 1;
-                    }
+                    if (currentSkill !== lastSkill) rank = index + 1;
                     lastSkill = currentSkill;
                     const stats = playerStats[player.name];
                     const rankInfo = this.getRankInfo(player.skill);
-                    const isInactive = (totalMatches - 1 - stats.last_played) >= inactivityThreshold;
                     const details = playerDetails[player.name] || {};
                     const displayName = `${player.name} ${details.abbrev ? `(${details.abbrev})` : ''}`;
-                    listHtml += this.templates.leaderboardRow(player, displayName, rank, rankInfo, isInactive);
+                    listHtml += this.templates.leaderboardRow(player, displayName, rank, rankInfo, (totalMatches - 1 - stats.last_played) >= 15);
                 });
-
-                if (playersToDisplay.length === 0) {
-                    listHtml = `<li class="text-center py-8 text-slate-400">No active players found. Try showing inactive players.</li>`;
-                }
+                if (playersToDisplay.length === 0) listHtml = `<li class="text-center py-8 text-slate-400">No active players found.</li>`;
                 return this.templates.leaderboardWrapper(listHtml, this.state.showInactive);
             },
 
             renderPlayerStatsTable(justBody = false) {
-                const stats = Object.values(this.state.data.playerStats);
+                const stats = Object.values(this.state.processedData.playerStats);
                 const { column, direction } = this.state.playerStatsSort;
-
                 stats.sort((a, b) => {
                     let valA = a[column], valB = b[column];
                     if (column === 'winRate') { valA = parseFloat(a.winRate); valB = parseFloat(b.winRate); }
@@ -398,16 +402,12 @@
                     if (valA > valB) return direction === 'asc' ? 1 : -1;
                     return a.name.localeCompare(b.name);
                 });
-
                 const tableRows = stats.map(p => this.templates.playerStatsRow(p, this.getWinRateColor(p.winRate))).join('');
-
                 if (justBody) {
                     document.getElementById('player-stats-table-body').innerHTML = tableRows;
                     document.querySelectorAll('#player-stats-table-head .sortable-header').forEach(el => {
                         el.classList.remove('sort-asc', 'sort-desc');
-                        if (el.dataset.sortBy === column) {
-                            el.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
-                        }
+                        if (el.dataset.sortBy === column) el.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
                     });
                     return;
                 }
@@ -415,21 +415,21 @@
             },
 
             renderWeeklyReview() {
-                const weekData = this.state.data.weeklyData[this.state.currentWeek];
-                const weekMatches = this.state.data.matches
+                if(this.state.availableWeeks.length === 0) return this.templates.noWeeklyData();
+                const weekData = this.state.processedData.weeklyData[this.state.currentWeek];
+                const weekMatches = this.state.processedData.matches
                     .map((match, index) => ({ ...match, originalIndex: index }))
-                    .filter(m => m.week === this.state.currentWeek)
-                    .reverse();
+                    .filter(m => m.week === this.state.currentWeek).reverse();
                 return this.templates.weeklyReviewWrapper.call(this, weekData, weekMatches, this.state.availableWeeks, this.state.currentWeek);
             },
 
             renderHead2Head() {
-                const playerNames = Object.keys(this.state.data.playerStats).sort();
+                const playerNames = Object.keys(this.state.processedData.playerStats).sort();
                 return this.templates.head2headWrapper(playerNames);
             },
 
             renderRecords() {
-                const { duos, rivalries, superlatives, matches, playerStats } = this.state.data;
+                const { duos, rivalries, superlatives, matches, playerStats } = this.state.processedData;
                 const playerRecords = [
                     { title: 'Highest Peak Skill', key: 'peakSkill', format: v => v.toFixed(2), color: 'text-amber-300' },
                     { title: 'Most Wins', key: 'wins', color: 'text-green-300' },
@@ -443,7 +443,7 @@
                 return this.templates.recordsWrapper.call(this, duos, rivalries, superlatives, matches, playerStats, playerRecords);
             },
 
-            // --- UPDATE & HELPER FUNCTIONS ---
+            // --- HELPERS & MODALS ---
             sortPlayerStats(newColumn) {
                 const { playerStatsSort } = this.state;
                 if (playerStatsSort.column === newColumn) {
@@ -463,12 +463,12 @@
                     resultsDiv.innerHTML = '<p class="text-center text-muted-color mt-8">Select two different players to compare.</p>';
                     return;
                 }
-                const stats1 = this.state.data.playerStats[p1Name];
-                const stats2 = this.state.data.playerStats[p2Name];
+                const stats1 = this.state.processedData.playerStats[p1Name];
+                const stats2 = this.state.processedData.playerStats[p2Name];
                 const rank1 = this.getRankInfo(stats1.skill);
                 const rank2 = this.getRankInfo(stats2.skill);
                 let p1Wins = 0, p2Wins = 0, total = 0;
-                this.state.data.matches.forEach(m => {
+                this.state.processedData.matches.forEach(m => {
                     const p1OnA = m.teamA.includes(p1Name), p1OnB = m.teamB.includes(p1Name);
                     const p2OnA = m.teamA.includes(p2Name), p2OnB = m.teamB.includes(p2Name);
                     if((p1OnA && p2OnB) || (p1OnB && p2OnA)) {
@@ -484,11 +484,11 @@
             renderEloChart(playerName) {
                 const ctx = document.getElementById('elo-chart')?.getContext('2d');
                 if (!ctx) return;
-                const fullHistory = this.state.data.history[playerName];
+                const fullHistory = this.state.processedData.history[playerName];
                 const skillData = fullHistory.map(h => h.mu - 3 * h.sigma);
                 if (window.eloChartInstance) window.eloChartInstance.destroy();
 
-                const minSkill = Math.min(...skillData, 0); // Ensure y-axis starts at least at 0
+                const minSkill = Math.min(...skillData, 0);
                 const maxSkill = Math.max(...skillData);
                 const range = maxSkill - minSkill;
                 const buffer = Math.max(2, range * 0.15);
@@ -506,17 +506,10 @@
                         }]
                     },
                     options: {
-                        animation: { duration: 0 },
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { display: false },
-                            y: { min: yMin, max: yMax, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(128,128,128, 0.1)' } }
-                        },
+                        animation: { duration: 0 }, maintainAspectRatio: false,
+                        scales: { x: { display: false }, y: { min: yMin, max: yMax, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(128,128,128, 0.1)' } } },
                         interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false },
-                        }
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
                     }
                 });
             },
@@ -549,12 +542,13 @@
             },
 
             renderPlayerMatchHistory(playerName) {
-                const { matches, history } = this.state.data;
+                const { matches, history } = this.state.processedData;
                 const playerMatchIds = history[playerName].slice(1).map(h => h.match_id);
                 return playerMatchIds.slice(-10).reverse().map(matchId => {
                     const match = matches[matchId];
                     const playerHistory = history[playerName];
                     const historyEntry = playerHistory.find(h => h.match_id == matchId);
+                    if (!historyEntry) return ''; // Safeguard
                     const historyIndex = playerHistory.indexOf(historyEntry);
                     const preSkill = playerHistory[historyIndex-1].mu - 3 * playerHistory[historyIndex-1].sigma;
                     const postSkill = historyEntry.mu - 3 * historyEntry.sigma;
@@ -565,7 +559,6 @@
                 }).join('');
             },
 
-            // --- MODALS ---
             showModal(content) {
                 document.body.style.overflow = 'hidden';
                 document.getElementById('modal-content').innerHTML = content;
@@ -589,28 +582,27 @@
             },
 
             showMatchModal(matchId) {
-                const match = this.state.data.matches[matchId];
-                const { history } = this.state.data;
-
+                const match = this.state.processedData.matches[matchId];
+                const { history } = this.state.processedData;
                 const getPreMatchRating = (player) => {
                     for (let j = history[player].length - 1; j >= 0; j--) {
                         if (history[player][j].match_id < matchId) return history[player][j];
                     }
                     return { mu: 25.0, sigma: 25.0/3.0 };
                 };
-
                 const teamARatings = match.teamA.map(p => getPreMatchRating(p));
                 const teamBRatings = match.teamB.map(p => getPreMatchRating(p));
-
                 const deltaMu = teamARatings.reduce((s,r)=>s+r.mu,0) - teamBRatings.reduce((s,r)=>s+r.mu,0);
                 const sumSigmaSq = [...teamARatings, ...teamBRatings].reduce((s,r)=>s+r.sigma**2,0);
                 const beta = 25.0 / 6.0;
                 const denom = Math.sqrt((teamARatings.length + teamBRatings.length) * beta**2 + sumSigmaSq);
-                const winProbA = denom > 0 ? 0.5 * (1 + (x => (x / Math.abs(x)) * Math.sqrt(1 - Math.exp(-2 * x * x / Math.PI)))(deltaMu / (Math.sqrt(2) * denom))) : 0.5;
+                const erf = x => { const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;const sign=x<0?-1:1;x=Math.abs(x);const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));return sign*y; };
+                const winProbA = denom > 0 ? 0.5 * (1 + erf(deltaMu / (Math.sqrt(2) * denom))) : 0.5;
 
                 const getPlayerChange = (player) => {
                     const pHist = history[player];
                     const hEntry = pHist.find(h => h.match_id == matchId);
+                    if(!hEntry) return { name: player, change: 'N/A', preSkill: 'N/A', postSkill: 'N/A'};
                     const hIndex = pHist.indexOf(hEntry);
                     if (hIndex < 1) return { name: player, change: 'N/A', preSkill: 'N/A', postSkill: 'N/A'};
                     const pre = pHist[hIndex-1];
@@ -619,105 +611,124 @@
                     const change = postSkill - preSkill;
                     return { name: player, change: change.toFixed(2), preSkill: preSkill.toFixed(2), postSkill: postSkill.toFixed(2) };
                 };
-
                 const teamAChanges = match.teamA.map(p => getPlayerChange(p));
                 const teamBChanges = match.teamB.map(p => getPlayerChange(p));
-
                 this.showModal(this.templates.matchModal(match, teamAChanges, teamBChanges, winProbA, matchId));
             },
 
             showEditPlayerModal(playerName) {
-                if (!this.state.adminSecret) {
-                    this.showModal(this.templates.errorModal("Admin secret required to edit players."));
-                    return;
-                }
-                const details = this.state.data.playerDetails[playerName] || {};
+                const details = this.state.sourceData.playerDetails[playerName] || {};
                 this.showModal(this.templates.editPlayerModal(playerName, details));
 
-                document.getElementById('edit-player-form').addEventListener('submit', async (e) => {
+                document.getElementById('edit-player-form').addEventListener('submit', (e) => {
                     e.preventDefault();
                     const form = e.target;
-                    const payload = {
-                        secret: this.state.adminSecret,
-                        originalName: playerName,
-                        newName: form.elements.newName.value.trim(),
-                        details: {
-                            lastName: form.elements.lastName.value.trim(),
-                            abbrev: form.elements.abbrev.value.trim().toUpperCase(),
-                            number: form.elements.number.value.trim(),
-                        }
+                    const oldName = playerName;
+                    const newName = form.elements.newName.value.trim();
+                    const newDetails = {
+                        lastName: form.elements.lastName.value.trim(),
+                        abbrev: form.elements.abbrev.value.trim().toUpperCase(),
+                        number: form.elements.number.value.trim(),
                     };
 
-                    try {
-                        const response = await fetch('/api/update_player', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
+                    if (oldName !== newName) {
+                        if (this.state.sourceData.playerDetails[newName]) {
+                            alert(`Player '${newName}' already exists.`);
+                            return;
+                        }
+                        // Rename in matches
+                        this.state.sourceData.matches.forEach(match => {
+                            match.teamA = match.teamA.map(p => p === oldName ? newName : p);
+                            match.teamB = match.teamB.map(p => p === oldName ? newName : p);
                         });
-                        const result = await response.json();
-                        if (!response.ok) throw new Error(result.error || 'Server error');
-                        this.closeModal();
-                        await this.fetchData(false);
-                        this.renderPlayerDetail(payload.newName);
-                    } catch (error) {
-                        document.getElementById('edit-player-error').textContent = error.message;
+                        // Rename in playerDetails
+                        this.state.sourceData.playerDetails[newName] = newDetails;
+                        delete this.state.sourceData.playerDetails[oldName];
+                    } else {
+                        this.state.sourceData.playerDetails[newName] = newDetails;
                     }
+
+                    this.state.hasUnsavedChanges = true;
+                    this.closeModal();
+                    this.processData(false);
                 });
             },
 
-            // --- API ACTIONS & ADMIN HELPERS ---
-            async addMatch() {
-                 if (!this.state.adminSecret) {
-                    document.getElementById('add-match-error').textContent = 'Admin secret required.';
-                    return;
-                }
+            addMatch() {
                 const form = document.getElementById('add-match-form');
-                const parsePlayers = str => str.split(',').map(p => p.trim()).filter(Boolean);
-                const payload = {
-                    secret: this.state.adminSecret,
+                const parsePlayers = str => str.split(',').map(p => p.trim().replace(/\s+/g, ' ')).filter(Boolean);
+                const newMatch = {
                     teamA: parsePlayers(form.elements.teamA.value),
                     teamB: parsePlayers(form.elements.teamB.value),
                     scoreA: parseInt(form.elements.scoreA.value),
                     scoreB: parseInt(form.elements.scoreB.value),
                     ts: Date.now()
                 };
-                const errorDiv = document.getElementById('add-match-error');
-                if (payload.teamA.length === 0 || payload.teamB.length === 0 || isNaN(payload.scoreA) || isNaN(payload.scoreB)) {
-                    errorDiv.textContent = 'Please fill all fields correctly.'; return;
+                if (newMatch.teamA.length === 0 || newMatch.teamB.length === 0 || isNaN(newMatch.scoreA) || isNaN(newMatch.scoreB)) {
+                    alert('Please fill all fields correctly.'); return;
                 }
-                 if(new Set([...payload.teamA, ...payload.teamB]).size !== payload.teamA.length + payload.teamB.length) {
-                    errorDiv.textContent = "A player cannot be on both teams."; return;
+                if (new Set([...newMatch.teamA, ...newMatch.teamB]).size !== newMatch.teamA.length + newMatch.teamB.length) {
+                    alert("A player cannot be on both teams."); return;
                 }
-                try {
-                    const response = await fetch('/api/add_match', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.error || 'Server error');
-                    form.reset();
-                    errorDiv.textContent = '';
-                    await this.fetchData(false);
-                    this.activateTab('weekly_review');
-                } catch (error) {
-                    errorDiv.textContent = error.message;
-                }
-            },
 
-            downloadBackup() {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.data, null, 2));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", `volley-stats-backup-${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
+                [...newMatch.teamA, ...newMatch.teamB].forEach(player => {
+                    if (!this.state.sourceData.playerDetails[player]) {
+                        this.state.sourceData.playerDetails[player] = {};
+                    }
+                });
+
+                this.state.sourceData.matches.push(newMatch);
+                this.state.hasUnsavedChanges = true;
+                form.reset();
+                this.state.activeTab = 'weekly_review'; // Go to review to see the new match
+                this.processData(false);
             },
 
             // --- HTML TEMPLATES ---
             templates: {
                 loader: message => `<div class="text-center py-20"><div class="mx-auto h-12 w-12 border-4 border-t-violet-500 border-slate-600 rounded-full animate-spin"></div><p class="mt-4 text-muted-color">${message}</p></div>`,
                 error: message => `<div class="glass-card p-8 text-center"><i data-lucide="alert-triangle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">An Error Occurred</h3><p class="text-muted-color mt-2">${message}</p></div>`,
-                errorModal: message => `<div class="text-center"><i data-lucide="shield-off" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">Permission Denied</h3><p class="text-muted-color mt-2">${message}</p><button class="close-modal-btn mt-6 glass-button rounded-md py-2 px-6 font-semibold">Close</button></div>`,
+                noDataLoaded: () => `<div class="glass-card p-8 text-center"><i data-lucide="upload-cloud" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">No Data Loaded</h2><p class="text-muted-color">Go to the <strong class="text-violet-400">Admin</strong> tab to load your <code class="bg-slate-800/50 p-1 rounded">JSON</code> file.</p></div>`,
+                noWeeklyData: () => `<div class="glass-card p-8 text-center"><i data-lucide="calendar-x" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">No Weekly Data</h2><p class="text-muted-color">Play some matches to see weekly summaries here.</p></div>`,
+                adminWrapper: (isAdmin, isDataLoaded, hasUnsavedChanges) => {
+                    if (!isAdmin) {
+                        return `<div class="glass-card p-8 text-center max-w-md mx-auto"><i data-lucide="eye" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">Read-Only Mode</h2><p class="text-muted-color">Data management is disabled. Restart with the admin secret to enable it.</p></div>`;
+                    }
+                    let unsavedWarning = hasUnsavedChanges
+                        ? `<div class="bg-yellow-500/10 text-yellow-300 text-sm p-3 rounded-lg flex items-center gap-3"><i data-lucide="alert-triangle" class="h-5 w-5"></i><div>You have unsaved changes. Download your data file to save them.</div></div>`
+                        : '';
+                    return `
+                     <div class="max-w-xl mx-auto space-y-8">
+                        <div class="glass-card p-6">
+                             <h2 class="text-2xl font-bold mb-4">Data Management</h2>
+                             <p class="text-muted-color text-sm mb-4">This app runs in your browser. Load your <code class="bg-slate-800/50 p-1 rounded">.json</code> file to start. Remember to download your data to save any changes like new matches.</p>
+                            <div class="flex gap-4">
+                               <label class="flex-1 w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition flex items-center justify-center gap-2 cursor-pointer">
+                                   <i data-lucide="upload" class="w-5 h-5"></i> Load Data File
+                                   <input type="file" id="load-data-input" accept=".json" class="hidden">
+                               </label>
+                               <button id="download-data-btn" class="flex-1 w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2 ${!isDataLoaded ? 'opacity-50 cursor-not-allowed' : ''}" ${!isDataLoaded ? 'disabled' : ''}>
+                                   <i data-lucide="download" class="w-5 h-5"></i> Download Data
+                               </button>
+                            </div>
+                            ${unsavedWarning}
+                        </div>
+                        ${isDataLoaded ? `
+                        <div class="glass-card p-6">
+                            <h2 class="text-2xl font-bold mb-4">Add a New Match</h2>
+                            <form id="add-match-form" class="space-y-4">
+                                <div><label class="block font-medium mb-1 text-slate-300">Team A</label><textarea name="teamA" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea></div>
+                                <div><label class="block font-medium mb-1 text-slate-300">Team B</label><textarea name="teamB" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
+                                    <div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
+                                </div>
+                                <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button>
+                            </form>
+                        </div>
+                        ` : ''}
+                    </div>`
+                },
                 leaderboardWrapper: (listHtml, showInactiveChecked) => `<div><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Player Leaderboard</h2><label class="flex items-center text-sm cursor-pointer text-slate-300"><input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>Show Inactive</label></div><div class="glass-card"><ul id="leaderboard-list">${listHtml}</ul></div></div>`,
                 leaderboardRow: (player, displayName, rank, rankInfo, isInactive) => `
                     <li class="flex items-center justify-between p-4 border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer ${isInactive ? 'opacity-50' : ''}" data-player-name="${player.name}">
@@ -739,7 +750,8 @@
                                     <tr>
                                         ${['name', 'skill', 'peakSkill', 'winRate', 'total', 'wins', 'losses', 'longestWinStreak', 'currentStreak'].map(col => {
                                             const labels = {name: 'Player', skill: 'Skill', peakSkill: 'Peak', winRate: 'Win %', total: 'Played', wins: 'Wins', losses: 'Losses', longestWinStreak: 'Best Streak', currentStreak: 'Streak'};
-                                            return `<th class="p-3 text-xs font-semibold text-muted-color uppercase tracking-wider">
+                                            const thClass = col === 'name' ? 'sticky-col' : '';
+                                            return `<th class="p-3 text-xs font-semibold text-muted-color uppercase tracking-wider ${thClass}">
                                                 <span class="sortable-header ${sortCol === col ? (sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : ''}" data-sort-by="${col}">${labels[col]}</span>
                                             </th>`
                                         }).join('')}
@@ -753,7 +765,7 @@
                     const streakColor = p.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400';
                     return `
                     <tr class="border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer" data-player-name="${p.name}">
-                        <td class="p-3 font-bold whitespace-nowrap">${p.name}</td>
+                        <td class="p-3 font-bold whitespace-nowrap sticky-col">${p.name}</td>
                         <td class="p-3 font-semibold text-violet-300">${p.skill.toFixed(2)}</td>
                         <td class="p-3">${p.peakSkill.toFixed(2)}</td>
                         <td class="p-3 font-semibold ${winRateColor}">${p.winRate}%</td>
@@ -763,6 +775,120 @@
                         <td class="p-3">${p.longestWinStreak}W</td>
                         <td class="p-3 font-semibold ${streakColor}">${p.currentStreak.count > 0 ? `${p.currentStreak.count}${p.currentStreak.type}` : '-'}</td>
                     </tr>`
+                },
+                recordsWrapper: function(duos, rivalries, superlatives, matches, playerStats, playerRecords) {
+                    const recordListTemplate = (record) => {
+                        const topPlayers = Object.values(playerStats)
+                            .filter(p => !record.minGames || p.total >= record.minGames)
+                            .sort((a, b) => {
+                                if (record.sort === 'streak') {
+                                    const valA = a.currentStreak.type === 'W' ? a.currentStreak.count : -a.currentStreak.count;
+                                    const valB = b.currentStreak.type === 'W' ? b.currentStreak.count : -b.currentStreak.count;
+                                    return valB - valA;
+                                }
+                                if (record.sort === 'form') return b.skillChangeLast10 - a.skillChangeLast10;
+                                const valA = record.key === 'winRate' ? parseFloat(a[record.key]) : a[record.key];
+                                const valB = record.key === 'winRate' ? parseFloat(b[record.key]) : b[record.key];
+                                return (parseFloat(valB) || 0) - (parseFloat(valA) || 0);
+                            }).slice(0, 5);
+                        let listHtml = '';
+                        let lastValue = null;
+                        let rank = 0;
+                        topPlayers.forEach((p, i) => {
+                            const value = p[record.key];
+                            let comparableValue;
+                            if (record.sort === 'streak') { comparableValue = (value.type === 'W' ? value.count : -value.count); }
+                            else if (typeof value === 'number') { comparableValue = value.toFixed(3); }
+                            else { comparableValue = parseFloat(value).toFixed(3); }
+                            if (comparableValue !== lastValue) rank = i + 1;
+                            lastValue = comparableValue;
+                            listHtml += `<li class="flex justify-between items-center" data-player-name="${p.name}"><span class="font-semibold cursor-pointer truncate"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color} flex-shrink-0 ml-2">${record.format ? record.format(value) : value}</span></li>`;
+                        });
+                        return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
+                    };
+                    return `
+                    <div id="records-content" class="space-y-8">
+                         <div class="glass-card p-6">
+                            <h2 class="text-2xl font-bold mb-4">Season Records</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${[
+                                    { superlative: superlatives.upset, title: 'Biggest Upset', color: 'text-violet-400', line: `Winner had a <strong>${superlatives.upset?.prob ? (superlatives.upset.prob * 100).toFixed(1) : 'N/A'}%</strong> chance to win.` },
+                                    { superlative: superlatives.dominant, title: 'Most Dominant Win', color: 'text-amber-400', line: `Won by a margin of <strong>${superlatives.dominant?.margin ?? 'N/A'}</strong> points.`},
+                                    { superlative: superlatives.highCaliber, title: 'Highest Caliber Match', color: 'text-sky-400', line: `Average player skill was <strong>${superlatives.highCaliber?.avgSkill ? superlatives.highCaliber.avgSkill.toFixed(2) : 'N/A'}</strong>.`},
+                                    { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<span class="font-bold cursor-pointer" data-player-name="${superlatives.best_performance?.player}">${superlatives.best_performance?.player}</span> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
+                                ].map(item => {
+                                    const match = item.superlative?.match_id !== undefined ? matches[item.superlative.match_id] : null;
+                                    return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-muted-color mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg text-slate-500">${item.title}</h3><p class="text-sm text-slate-600">No matches yet.</p></div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Player Records</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${playerRecords.map(record => recordListTemplate(record)).join('')}</div></div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                           ${[
+                               { title: 'Top Duos', data: duos },
+                               { title: 'Biggest Rivalries', data: rivalries }
+                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-muted-color">Min. 5 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-muted-color uppercase"><th class="p-3">Players</th><th class="p-3">Record</th><th class="p-3">${table.title === 'Top Duos' ? 'Win %' : 'Total'}</th></tr></thead><tbody>${(table.data || []).length > 0 ? table.data.map(d => table.title === 'Top Duos' ? `<tr><td class="p-3 font-semibold">${d.players.join(' & ')}</td><td class="p-3">${d.wins}-${d.total-d.wins}</td><td class="p-3 font-bold ${this.getWinRateColor( (d.wins/d.total)*100 )}">${((d.wins/d.total)*100).toFixed(1)}%</td></tr>` : `<tr><td class="p-3 font-semibold">${d.players[0]} vs ${d.players[1]}</td><td class="p-3 font-bold text-violet-400">${d.p1_wins} - ${d.p2_wins}</td><td class="p-3">${d.total}</td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center text-muted-color">Not enough data.</td></tr>'}</tbody></table></div></div>`).join('')}
+                        </div>
+                    </div>`},
+                 weeklyReviewWrapper: function(weekData, weekMatches, availableWeeks, currentWeek) {
+                    const seasonStartDate = new Date('2025-09-01T00:00:00Z');
+                    const weekStartDate = new Date(seasonStartDate.getTime());
+                    weekStartDate.setDate(weekStartDate.getDate() + (currentWeek - 1) * 7);
+                    const weekEndDate = new Date(weekStartDate.getTime());
+                    weekEndDate.setDate(weekEndDate.getDate() + 6);
+                    const formatDate = (date) => date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    return `
+                    <div class="space-y-8">
+                        <div>
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
+                                <div>
+                                    <h2 class="text-2xl font-bold">Weekly Review</h2>
+                                    <p class="text-muted-color">Summary for ${formatDate(weekStartDate)} - ${formatDate(weekEndDate)}</p>
+                                </div>
+                                <select id="week-selector" class="w-full mt-2 sm:mt-0 sm:w-auto p-2 border border-slate-600 rounded-md bg-slate-800/50 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                                    ${availableWeeks.map(w => `<option value="${w}" ${w === currentWeek ? 'selected' : ''}>Week ${w}</option>`).join('')}
+                                </select>
+                            </div>
+                            ${this.templates.weeklyReviewContent.call(this, weekData, weekMatches)}
+                        </div>
+                    </div>`
+                },
+                weeklyReviewContent: function(weekData, weekMatches) {
+                    const awards = [
+                        { icon: 'trending-up', color: 'text-green-400', title: 'Top Performer', data: weekData.topPerformer, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">Skill Gained: +${data.value.toFixed(2)}</p>` : 'N/A' },
+                        { icon: 'flame', color: 'text-orange-400', title: 'Most Active', data: weekData.mostActive, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">${data.value} Matches Played</p>` : 'N/A' },
+                        { icon: 'crown', color: 'text-amber-400', title: 'Most Wins', data: weekData.mostWins, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">${data.value} Wins</p>` : 'N/A' },
+                        { icon: 'swords', color: 'text-sky-400', title: 'Best Duo', data: weekData.bestDuo, format: data => data.players.length > 0 ? `<p class="font-bold text-lg">${data.players.join(' & ')}</p><p class="font-semibold">${data.wins} Wins Together</p>` : 'N/A' },
+                        { icon: 'plus-minus', color: 'text-teal-400', title: 'Best Point Differential', data: weekData.bestPointDiff, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">Net Points: +${data.value}</p>` : 'N/A' },
+                        { icon: 'shield-check', color: 'text-rose-400', title: 'The Ice Man', data: weekData.weeklyClutcher, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">${data.value.toFixed(0)}% Clutch Win Rate (${data.attempts} att.)</p>` : 'N/A' },
+                    ];
+                    let leaderboardHtml = '<p class="text-muted-color text-center py-4">No ranked players this week.</p>';
+                    if (weekData.leaderboard && weekData.leaderboard.length > 0) {
+                        let leaderboardHtmlParts = []; let lastSkill = -9999; let rank = 0;
+                        weekData.leaderboard.slice(0, 10).forEach((player, index) => {
+                            const currentSkill = player.skill.toFixed(3);
+                            if (currentSkill !== lastSkill) rank = index + 1;
+                            lastSkill = currentSkill;
+                            const rankInfo = this.getRankInfo(player.skill);
+                            leaderboardHtmlParts.push(`<li class="flex items-center justify-between p-2 rounded-md bg-slate-900/40 hover:bg-slate-900/80 cursor-pointer" data-player-name="${player.name}"><div class="flex items-center gap-3"><span class="font-bold text-muted-color w-5 text-center">${rank}</span><p class="font-semibold">${player.name}</p></div><div class="flex items-center gap-2"><span class="font-semibold text-sm">${player.skill.toFixed(2)}</span><span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span></div></li>`);
+                        });
+                        leaderboardHtml = `<ul class="space-y-2">${leaderboardHtmlParts.join('')}</ul>`;
+                    }
+                    const matchesHtml = weekMatches.length > 0 ? weekMatches.map(match => this.templates.matchCard(match, match.originalIndex)).join('') : '<p class="text-muted-color text-center py-8 col-span-full">No matches were played this week.</p>';
+                    return `
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-1 space-y-6">
+                                <div class="glass-card p-4"><h3 class="font-bold mb-2 text-center">End of Week Leaderboard</h3>${leaderboardHtml}</div>
+                            </div>
+                            <div class="lg:col-span-2">
+                                <h3 class="text-xl font-bold mb-4">Weekly Awards</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                    ${awards.map(award => `<div class="bg-slate-800/50 p-4 rounded-lg flex items-center gap-4"><i data-lucide="${award.icon}" class="h-8 w-8 ${award.color} flex-shrink-0"></i><div><p class="text-sm text-muted-color">${award.title}</p>${award.format(award.data)}</div></div>`).join('')}
+                                </div>
+                                <h3 class="text-xl font-bold mb-4">Matches This Week</h3>
+                                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2">${matchesHtml}</div>
+                            </div>
+                        </div>`
                 },
                 head2headWrapper: playerNames => `<div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}</div><div id="h2h-results"><p class="text-center text-muted-color mt-8">Select two different players to compare.</p></div></div>`,
                 head2headResults: (s1, s2, p1Wins, p2Wins, total, r1, r2) => {
@@ -804,70 +930,6 @@
                         }).map(([key, val]) => `<tr><td class="p-3 ${val.comp[0]}">${val.v1}</td><td class="p-3 font-semibold">${key}</td><td class="p-3 ${val.comp[1]}">${val.v2}</td></tr>`).join('')}
                     </tbody></table></div></div>`;
                 },
-                recordsWrapper: function(duos, rivalries, superlatives, matches, playerStats, playerRecords) {
-                    const recordListTemplate = (record) => {
-                        const topPlayers = Object.values(playerStats)
-                            .filter(p => !record.minGames || p.total >= record.minGames)
-                            .sort((a, b) => {
-                                if (record.sort === 'streak') {
-                                    const valA = a.currentStreak.type === 'W' ? a.currentStreak.count : -a.currentStreak.count;
-                                    const valB = b.currentStreak.type === 'W' ? b.currentStreak.count : -b.currentStreak.count;
-                                    return valB - valA;
-                                }
-                                if (record.sort === 'form') {
-                                     return b.skillChangeLast10 - a.skillChangeLast10;
-                                }
-                                const valA = record.key === 'winRate' ? parseFloat(a[record.key]) : a[record.key];
-                                const valB = record.key === 'winRate' ? parseFloat(b[record.key]) : b[record.key];
-                                return (parseFloat(valB) || 0) - (parseFloat(valA) || 0);
-                            })
-                            .slice(0, 5);
-
-                        let listHtml = '';
-                        // FIX: Implement shared ranking for player records.
-                        let lastValue = null;
-                        let rank = 0;
-                        topPlayers.forEach((p, i) => {
-                            const value = p[record.key];
-                            let comparableValue;
-
-                            if (record.sort === 'streak') { comparableValue = (value.type === 'W' ? value.count : -value.count); }
-                            else if (typeof value === 'number') { comparableValue = value.toFixed(3); }
-                            else { comparableValue = value; }
-
-                            if (comparableValue !== lastValue) {
-                                rank = i + 1;
-                            }
-                            lastValue = comparableValue;
-
-                            listHtml += `<li class="flex justify-between items-center" data-player-name="${p.name}"><span class="font-semibold cursor-pointer truncate"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color} flex-shrink-0 ml-2">${record.format ? record.format(value) : value}</span></li>`;
-                        });
-                        return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
-                    };
-                    return `
-                    <div id="records-content" class="space-y-8">
-                         <div class="glass-card p-6">
-                            <h2 class="text-2xl font-bold mb-4">Match Records</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                ${[
-                                    { superlative: superlatives.upset, title: 'Biggest Upset', color: 'text-violet-400', line: `Winner had a <strong>${superlatives.upset?.prob ? (superlatives.upset.prob * 100).toFixed(1) : 'N/A'}%</strong> chance to win.` },
-                                    { superlative: superlatives.dominant, title: 'Most Dominant Win', color: 'text-amber-400', line: `Won by a margin of <strong>${superlatives.dominant?.margin ?? 'N/A'}</strong> points.`},
-                                    { superlative: superlatives.highCaliber, title: 'Highest Caliber Match', color: 'text-sky-400', line: `Average player skill was <strong>${superlatives.highCaliber?.avgSkill ? superlatives.highCaliber.avgSkill.toFixed(2) : 'N/A'}</strong>.`},
-                                    { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<span class="cursor-pointer" data-player-name="${superlatives.best_performance?.player}"><strong>${superlatives.best_performance?.player}</strong></span> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
-                                ].map(item => {
-                                    const match = item.superlative?.match_id !== undefined ? matches[item.superlative.match_id] : null;
-                                    return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-muted-color mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg text-slate-500">${item.title}</h3><p class="text-sm text-slate-600">No matches yet.</p></div>`;
-                                }).join('')}
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                           ${[
-                               { title: 'Top Duos', data: duos, render: d => `<tr><td class="p-3 font-semibold">${d.players.join(' & ')}</td><td class="p-3">${d.wins}-${d.total-d.wins}</td><td class="p-3 font-bold ${this.getWinRateColor( (d.wins/d.total)*100 )}">${((d.wins/d.total)*100).toFixed(1)}%</td></tr>`},
-                               { title: 'Biggest Rivalries', data: rivalries, render: r => `<tr><td class="p-3 font-semibold">${r.players[0]} vs ${r.players[1]}</td><td class="p-3 font-bold text-violet-400">${r.p1_wins} - ${r.p2_wins}</td><td class="p-3">${r.total}</td></tr>` }
-                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-muted-color">Min. 5 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-muted-color uppercase"><th class="p-3">Players</th><th class="p-3">Record</th><th class="p-3">${table.title === 'Top Duos' ? 'Win %' : 'Total'}</th></tr></thead><tbody>${(table.data || []).length > 0 ? table.data.map(table.render).join('') : '<tr><td colspan="3" class="p-4 text-center text-muted-color">Not enough data.</td></tr>'}</tbody></table></div></div>`).join('')}
-                        </div>
-                        <div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Player Records</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${playerRecords.map(record => recordListTemplate(record)).join('')}</div></div>
-                    </div>`},
                 matchCard: (match, matchId) => `
                     <div class="glass-card p-4 hover:border-slate-600 transition cursor-pointer" data-match-id="${matchId}">
                         <div class="flex justify-between items-start mb-2">
@@ -884,40 +946,11 @@
                         </div>
                     </div>`,
                 guide: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-muted-color">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-muted-color">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-muted-color">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold">${tier.skill}</span></li>`).join('')}</ul></div></div>`,
-                adminWrapper: function() {
-                     return `
-                     <div class="max-w-md mx-auto">
-                        <div class="glass-card p-6">
-                            <h2 class="text-2xl font-bold mb-4">Add a New Match</h2>
-                            <form id="add-match-form" class="space-y-4">
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-300">Team A</label>
-                                    <textarea name="teamA" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea>
-                                </div>
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-300">Team B</label>
-                                    <textarea name="teamB" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block font-medium mb-1 text-slate-300">Score A</label><input type="number" name="scoreA" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
-                                    <div><label class="block font-medium mb-1 text-slate-300">Score B</label><input type="number" name="scoreB" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2 text-center text-lg font-bold"></div>
-                                </div>
-                                <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button>
-                                <div id="add-match-error" class="text-red-400 text-center text-sm font-semibold h-4"></div>
-                            </form>
-                        </div>
-                        <div class="glass-card p-6 mt-8">
-                            <h2 class="text-2xl font-bold mb-4">Admin Tools</h2>
-                            <button id="backup-btn" class="w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Download Full Backup</button>
-                        </div>
-                    </div>`
-                },
                 playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `<div class="glass-card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-start mb-4"><button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back</button><button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button></div><div class="flex flex-wrap items-center gap-4 mb-6"><h2 class="text-3xl font-bold">${displayName}</h2><span class="rank-badge ${rank.class}">${rank.name}</span></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">${Object.entries({Skill: stats.skill.toFixed(2),"Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},"Win Rate": `${stats.winRate}%`,Record: `${stats.wins}-${stats.losses}`,"Best Streak": `${stats.longestWinStreak}W`,"Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}}).map(([label, data]) => {const value = typeof data === 'object' ? data.value : data; const glowClass = data.glow ? 'peak-skill-glow' : ''; const colorClass = data.color || ''; return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-muted-color uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`}).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div><h3 class="text-xl font-semibold mb-2">Skill History</h3><div class="h-64"><canvas id="elo-chart"></canvas></div></div><div><h3 class="text-xl font-semibold mb-2">Recent Matches</h3><div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div></div></div></div>`,
                 playerMatchHistoryRow: (match, matchId, won, skillChange, currentPlayer) => {
                     const highlightName = (team, name) => team.map(p => p === name ? `<strong class="text-violet-300 font-bold">${name}</strong>` : p).join(', ');
                     const teamAString = highlightName(match.teamA, currentPlayer);
                     const teamBString = highlightName(match.teamB, currentPlayer);
-
                     return `<div data-match-id="${matchId}" class="bg-slate-800/50 p-3 rounded-md flex justify-between items-center hover:bg-slate-800/80 cursor-pointer transition">
                         <div>
                             <p class="text-sm font-semibold">${teamAString} vs ${teamBString}</p>
@@ -963,106 +996,7 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">${[teamAChanges, teamBChanges].map((changes, i) => `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-center mb-2">Team ${i === 0 ? 'A' : 'B'} Skill Changes</h3><ul class="divide-y divide-slate-700/50">${renderTeam(changes)}</ul></div>`).join('')}</div>`;
                 },
-                editPlayerModal: (playerName, details) => `<form id="edit-player-form"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Edit Player</h2><button type="button" class="close-modal-btn text-muted-color hover:text-color"><i data-lucide="x" class="h-6 w-6"></i></button></div><div class="space-y-4"><div><label class="block text-sm font-medium">Name</label><input type="text" name="newName" value="${playerName}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Last Name</label><input type="text" name="lastName" value="${details.lastName || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Abbreviation</label><input type="text" name="abbrev" value="${details.abbrev || ''}" maxlength="3" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Number</label><input type="text" name="number" value="${details.number || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div></div><div class="mt-6 flex justify-end gap-3"><button type="button" class="close-modal-btn glass-button rounded-md py-2 px-4 font-semibold">Cancel</button><button type="submit" class="bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Save Changes</button></div><p id="edit-player-error" class="text-red-400 text-right text-sm font-semibold h-4 mt-2"></p></form>`,
-                noWeeklyData: () => `<div class="glass-card p-8 text-center"><i data-lucide="calendar-x" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">No Weekly Data</h2><p class="text-muted-color">Play some matches to see weekly summaries here.</p></div>`,
-                weeklyReviewWrapper: function(weekData, weekMatches, availableWeeks, currentWeek) {
-                    const seasonStartDate = new Date('2025-09-01T00:00:00Z');
-                    const weekStartDate = new Date(seasonStartDate.getTime());
-                    weekStartDate.setDate(weekStartDate.getDate() + (currentWeek - 1) * 7);
-                    const weekEndDate = new Date(weekStartDate.getTime());
-                    weekEndDate.setDate(weekEndDate.getDate() + 6);
-                    const formatDate = (date) => date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-                    return `
-                    <div class="space-y-8">
-                        <div>
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-                                <div>
-                                    <h2 class="text-2xl font-bold">Weekly Review</h2>
-                                    <p class="text-muted-color">Summary for ${formatDate(weekStartDate)} - ${formatDate(weekEndDate)}</p>
-                                </div>
-                                <select id="week-selector" class="w-full mt-2 sm:mt-0 sm:w-auto p-2 border border-slate-600 rounded-md bg-slate-800/50">
-                                    ${availableWeeks.map(w => `<option value="${w}" ${w === currentWeek ? 'selected' : ''}>Week ${w}</option>`).join('')}
-                                </select>
-                            </div>
-                            ${this.templates.weeklyReviewContent.call(this, weekData, weekMatches)}
-                        </div>
-                    </div>`
-                },
-                weeklyReviewContent: function(weekData, weekMatches) {
-                    let leaderboardHtml = '<p class="text-muted-color text-center py-4">No ranked players this week.</p>';
-                    if (weekData.leaderboard && weekData.leaderboard.length > 0) {
-                        let leaderboardHtmlParts = [];
-                        let lastSkill = -9999;
-                        let rank = 0;
-                        weekData.leaderboard.slice(0, 10).forEach((player, index) => {
-                            const currentSkill = player.skill.toFixed(3);
-                            if (currentSkill !== lastSkill) {
-                                rank = index + 1;
-                            }
-                            lastSkill = currentSkill;
-
-                            const rankInfo = this.getRankInfo(player.skill);
-                            leaderboardHtmlParts.push(`
-                                <li class="flex items-center justify-between p-2 rounded-md bg-slate-900/40 hover:bg-slate-900/80 cursor-pointer" data-player-name="${player.name}">
-                                    <div class="flex items-center gap-3">
-                                        <span class="font-bold text-muted-color w-5 text-center">${rank}</span>
-                                        <p class="font-semibold">${player.name}</p>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-semibold text-sm">${player.skill.toFixed(2)}</span>
-                                        <span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span>
-                                    </div>
-                                </li>`);
-                        });
-                        leaderboardHtml = `<ul class="space-y-2">${leaderboardHtmlParts.join('')}</ul>`;
-                    }
-
-                    const topPerformer = weekData.topPerformer;
-                    const mostActive = weekData.mostActive;
-                    const matchesHtml = weekMatches.length > 0
-                        ? weekMatches.map(match => this.templates.matchCard(match, match.originalIndex)).join('')
-                        : '<p class="text-muted-color text-center py-8 col-span-full">No matches were played this week.</p>';
-
-                    return `
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div class="lg:col-span-1 space-y-6">
-                                <div class="glass-card p-4">
-                                    <h3 class="font-bold mb-2 text-center">End of Week Leaderboard</h3>
-                                    ${leaderboardHtml}
-                                </div>
-                                <div class="glass-card p-4">
-                                    <h3 class="font-bold mb-3 text-center">Weekly Awards</h3>
-                                    <div class="space-y-3">
-                                        ${topPerformer ? `
-                                        <div class="bg-slate-800/50 p-4 rounded-lg flex items-center gap-4">
-                                            <i data-lucide="trending-up" class="h-8 w-8 text-green-400 flex-shrink-0"></i>
-                                            <div>
-                                                <p class="text-sm text-muted-color">Top Performer</p>
-                                                <p class="font-bold text-lg cursor-pointer" data-player-name="${topPerformer.name}">${topPerformer.name}</p>
-                                                <p class="font-semibold text-green-400">Skill Gained: +${topPerformer.value.toFixed(2)}</p>
-                                            </div>
-                                        </div>` : ''}
-                                        ${mostActive ? `
-                                        <div class="bg-slate-800/50 p-4 rounded-lg flex items-center gap-4">
-                                            <i data-lucide="flame" class="h-8 w-8 text-orange-400 flex-shrink-0"></i>
-                                            <div>
-                                                <p class="text-sm text-muted-color">Most Active</p>
-                                                <p class="font-bold text-lg cursor-pointer" data-player-name="${mostActive.name}">${mostActive.name}</p>
-                                                <p class="font-semibold text-orange-400">${mostActive.value} Matches Played</p>
-                                            </div>
-                                        </div>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="lg:col-span-2">
-                                <h3 class="text-xl font-bold mb-4">Matches This Week</h3>
-                                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto pr-2">
-                                    ${matchesHtml}
-                                </div>
-                            </div>
-                        </div>`
-                }
+                editPlayerModal: (playerName, details) => `<form id="edit-player-form"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Edit Player</h2><button type="button" class="close-modal-btn text-muted-color hover:text-color"><i data-lucide="x" class="h-6 w-6"></i></button></div><div class="space-y-4"><div><label class="block text-sm font-medium">Name</label><input type="text" name="newName" value="${playerName}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Last Name</label><input type="text" name="lastName" value="${details.lastName || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Abbreviation</label><input type="text" name="abbrev" value="${details.abbrev || ''}" maxlength="3" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div><div><label class="block text-sm font-medium">Number</label><input type="text" name="number" value="${details.number || ''}" class="mt-1 w-full rounded-md bg-slate-800/50 border-slate-600 p-2 border"></div></div><div class="mt-6 flex justify-end gap-3"><button type="button" class="close-modal-btn glass-button rounded-md py-2 px-4 font-semibold">Cancel</button><button type="submit" class="bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Save Changes</button></div><p id="edit-player-error" class="text-red-400 text-right text-sm font-semibold h-4 mt-2"></p></form>`
             }
         };
 
