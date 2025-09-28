@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Volley Pro Stats</title>
+    <title>Volley Stats Pro</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for data visualization -->
@@ -234,16 +234,34 @@
                 this.activateTab('admin');
             },
 
-            // --- EVENT LISTENERS (REBUILT FOR RELIABILITY) ---
+            // --- EVENT LISTENERS ---
             setupDelegatedListeners() {
                 const appEl = document.getElementById('app');
+                
+                const modalBackdrop = document.getElementById('modal-backdrop');
+                modalBackdrop.addEventListener('click', (e) => {
+                    if (e.target === modalBackdrop) {
+                        this.closeModal();
+                    }
+                });
+
                 appEl.addEventListener('click', (e) => {
                     const playerLink = e.target.closest('a[data-player-name]');
                     const matchLink = e.target.closest('[data-match-id]');
                     const backButton = e.target.closest('#back-to-main');
+                    const closeModalButton = e.target.closest('.close-modal-btn');
+
+                    if (closeModalButton) {
+                        e.preventDefault();
+                        this.closeModal();
+                        return;
+                    }
 
                     if (playerLink) {
                         e.preventDefault();
+                        if (playerLink.closest('#modal-content')) {
+                            this.closeModal();
+                        }
                         this.renderPlayerDetail(playerLink.dataset.playerName);
                         return;
                     }
@@ -348,7 +366,6 @@
                 const isPeak = stats.skill.toFixed(2) >= stats.peakSkill.toFixed(2);
                 const displayName = `${stats.name} ${details.lastName || ''} ${details.number ? `#${details.number}`: ''}`.trim();
                 const recentMatchesHtml = this.renderPlayerMatchHistory(playerName);
-                // --- FIX: Use .call(this, ...) to ensure the template has the correct 'this' context ---
                 contentWrapper.innerHTML = this.templates.playerDetail.call(this, playerName, displayName, stats, rank, isPeak, this.state.activeTab, recentMatchesHtml);
                 this.renderEloChart(playerName);
                 this.attachEventListeners('playerDetail');
@@ -361,23 +378,58 @@
             },
 
             renderLeaderboard() {
-                const { leaderboard, playerStats, totalMatches, playerDetails } = this.state.processedData;
+                const { leaderboard, playerStats, totalMatches, playerDetails, leaderboard_before_last } = this.state.processedData;
+
                 let playersToDisplay = this.state.showInactive ? leaderboard : leaderboard.filter(p => (totalMatches - 1 - playerStats[p.name].last_played) < 15);
+                const displayedPlayerNames = new Set(playersToDisplay.map(p => p.name));
+
+                const oldRanks = new Map();
+                if (leaderboard_before_last && leaderboard_before_last.length > 0) {
+                    const oldLeaderboardFiltered = leaderboard_before_last.filter(p => displayedPlayerNames.has(p.name));
+
+                    let lastSkill = -9999;
+                    let rank = 0;
+                    oldLeaderboardFiltered.forEach((player, index) => {
+                        const currentSkill = player.skill.toFixed(3);
+                        if (currentSkill !== lastSkill) rank = index + 1;
+                        lastSkill = currentSkill;
+                        oldRanks.set(player.name, rank);
+                    });
+                }
+
                 let listHtml = '';
                 let lastSkill = -9999;
                 let rank = 0;
+
                 playersToDisplay.forEach((player, index) => {
                     const currentSkill = player.skill.toFixed(3);
                     if (currentSkill !== lastSkill) rank = index + 1;
                     lastSkill = currentSkill;
+
+                    let rankChange = null;
+                    if (oldRanks.size > 0) {
+                        if (oldRanks.has(player.name)) {
+                            const oldRank = oldRanks.get(player.name);
+                            const change = oldRank - rank;
+                            rankChange = { change };
+                        } else {
+                           rankChange = { change: 'new' };
+                        }
+                    }
+
                     const stats = playerStats[player.name];
                     const rankInfo = this.getRankInfo(player.skill);
                     const details = playerDetails[player.name] || {};
                     const displayName = `${player.name} ${details.abbrev ? `(${details.abbrev})` : ''}`;
-                    listHtml += this.templates.leaderboardRow(player, displayName, rank, rankInfo, (totalMatches - 1 - stats.last_played) >= 15);
+                    listHtml += this.templates.leaderboardRow(player, displayName, rank, rankInfo, (totalMatches - 1 - stats.last_played) >= 15, rankChange);
                 });
+
                 if (playersToDisplay.length === 0) listHtml = `<li class="text-center py-8 text-slate-400">No active players found.</li>`;
-                return this.templates.leaderboardWrapper(listHtml, this.state.showInactive);
+                
+                const message = leaderboard_before_last && leaderboard_before_last.length > 0
+                    ? "Changes reflect the last match played."
+                    : "Overall player rankings.";
+                return this.templates.leaderboardWrapper(listHtml, this.state.showInactive, message);
             },
 
             renderPlayerStatsTable(justBody = false) {
@@ -552,12 +604,12 @@
                             data: skillData,
                             fill: true,
                             tension: 0.1,
-                            pointRadius: 0, // No points
+                            pointRadius: 0,
                             pointHoverRadius: 5,
-                            stepped: false, // Back to smooth line
+                            stepped: false,
                             segment: {
                                 borderColor: ctx => this.getRankInfo(ctx.p1.raw)?.color || '#cbd5e1',
-                                backgroundColor: ctx => this.hexToRgba(this.getRankInfo(ctx.p1.raw)?.color, 0.2), // More visible fill
+                                backgroundColor: ctx => this.hexToRgba(this.getRankInfo(ctx.p1.raw)?.color, 0.2),
                             },
                         }]
                     },
@@ -568,21 +620,13 @@
                         plugins: {
                             legend: { display: false },
                             tooltip: {
-                                enabled: true,
-                                mode: 'index',
-                                intersect: false,
-                                displayColors: false,
-                                backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                                titleFont: { size: 0 },
-                                bodyFont: { size: 12, weight: 'bold' },
-                                padding: 8,
-                                callbacks: {
-                                    label: (context) => `Skill: ${context.raw.toFixed(2)}`
-                                }
+                                enabled: true, mode: 'index', intersect: false, displayColors: false,
+                                backgroundColor: 'rgba(15, 23, 42, 0.8)', titleFont: { size: 0 }, bodyFont: { size: 12, weight: 'bold' }, padding: 8,
+                                callbacks: { label: (context) => `Skill: ${context.raw.toFixed(2)}` }
                             }
                         }
                     },
-                    plugins: [customAnnotationsPlugin], // Removed the full background plugin
+                    plugins: [customAnnotationsPlugin],
                 });
             },
 
@@ -603,7 +647,6 @@
                     { name: 'Silver',   min: 5, class: 'rank-silver', color: '#cbd5e1'},
                     { name: 'Bronze',   min: -Infinity, class: 'rank-bronze', color: '#fdba74' }
                 ];
-                // If skill is passed, return the specific tier. If not, return all tiers.
                 return skill !== undefined ? tiers.find(t => skill >= t.min) : { tiers };
             },
 
@@ -621,7 +664,7 @@
                     const match = matches[matchId];
                     const playerHistory = history[playerName];
                     const historyEntry = playerHistory.find(h => h.match_id == matchId);
-                    if (!historyEntry) return ''; // Safeguard
+                    if (!historyEntry) return '';
                     const historyIndex = playerHistory.indexOf(historyEntry);
                     const preSkill = playerHistory[historyIndex-1].mu - 3 * playerHistory[historyIndex-1].sigma;
                     const postSkill = historyEntry.mu - 3 * historyEntry.sigma;
@@ -638,11 +681,6 @@
                 const backdrop = document.getElementById('modal-backdrop');
                 backdrop.classList.remove('hidden');
                 backdrop.classList.add('flex');
-                backdrop.addEventListener('click', () => this.closeModal(), { once: true });
-                document.getElementById('modal-content').addEventListener('click', e => e.stopPropagation());
-                document.querySelectorAll('.close-modal-btn').forEach(btn =>
-                    btn.addEventListener('click', () => this.closeModal(), { once: true })
-                );
                 lucide.createIcons();
             },
 
@@ -699,12 +737,10 @@
                             alert(`Player '${newName}' already exists.`);
                             return;
                         }
-                        // Rename in matches
                         this.state.sourceData.matches.forEach(match => {
                             match.teamA = match.teamA.map(p => p === oldName ? newName : p);
                             match.teamB = match.teamB.map(p => p === oldName ? newName : p);
                         });
-                        // Rename in playerDetails
                         this.state.sourceData.playerDetails[newName] = newDetails;
                         delete this.state.sourceData.playerDetails[oldName];
                     } else {
@@ -743,7 +779,7 @@
                 this.state.sourceData.matches.push(newMatch);
                 this.state.hasUnsavedChanges = true;
                 form.reset();
-                this.state.activeTab = 'weekly_review';
+                this.state.activeTab = 'leaderboard';
                 this.processData(false);
             },
 
@@ -821,18 +857,34 @@
                         </div>
                     </div>`
                 },
-                leaderboardWrapper: (listHtml, showInactiveChecked) => `<div><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Player Leaderboard</h2><label class="flex items-center text-sm cursor-pointer text-slate-300"><input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>Show Inactive</label></div><div class="glass-card"><ul id="leaderboard-list">${listHtml}</ul></div></div>`,
-                leaderboardRow: (player, displayName, rank, rankInfo, isInactive) => `
+                leaderboardWrapper: (listHtml, showInactiveChecked, message) => `<div><div class="mb-4"><h2 class="text-2xl font-bold">Player Leaderboard</h2><p class="text-sm text-muted-color">${message}</p></div><div class="flex justify-end mb-4"><label class="flex items-center text-sm cursor-pointer text-slate-300"><input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>Show Inactive</label></div><div class="glass-card"><ul id="leaderboard-list">${listHtml}</ul></div></div>`,
+                leaderboardRow: (player, displayName, rank, rankInfo, isInactive, rankChange) => {
+                    let rankChangeHtml = '';
+                    if (rankChange) {
+                        if (rankChange.change === 'new') {
+                            rankChangeHtml = `<span class="text-xs font-semibold text-sky-400">NEW</span>`;
+                        } else if (rankChange.change > 0) {
+                            rankChangeHtml = `<div class="flex items-center gap-1 text-green-400" title="Up ${rankChange.change}"><i data-lucide="arrow-up" class="w-3 h-3"></i><span class="text-xs font-bold">${rankChange.change}</span></div>`;
+                        } else if (rankChange.change < 0) {
+                            rankChangeHtml = `<div class="flex items-center gap-1 text-red-400" title="Down ${Math.abs(rankChange.change)}"><i data-lucide="arrow-down" class="w-3 h-3"></i><span class="text-xs font-bold">${Math.abs(rankChange.change)}</span></div>`;
+                        } else {
+                            rankChangeHtml = `<span class="text-xs font-bold text-slate-500" title="No change">–</span>`;
+                        }
+                    }
+                    return `
                     <li class="flex items-center justify-between p-3 sm:p-4 border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition-colors ${isInactive ? 'opacity-50' : ''}">
                         <div class="flex items-center gap-3 sm:gap-4">
-                            <span class="text-lg font-bold text-muted-color w-6 text-center">${rank}</span>
-                             <div>
+                            <div class="flex items-center justify-start gap-2 w-12">
+                                <span class="text-lg font-bold text-muted-color w-6 text-center">${rank}</span>
+                                <div class="w-6 flex justify-center items-center">${rankChangeHtml}</div>
+                            </div>
+                            <div>
                                 <a href="#" data-player-name="${player.name}" class="font-bold text-base sm:text-lg hover:underline">${displayName}</a>
                                 <p class="text-sm text-muted-color">Skill: ${player.skill.toFixed(2)}</p>
                             </div>
                         </div>
                         <span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span>
-                    </li>`,
+                    </li>`},
                 playerStatsWrapper: (tableRows, sortCol, sortDir) => `
                     <div>
                         <h2 class="text-2xl font-bold mb-4">Detailed Player Stats</h2>
@@ -958,15 +1010,53 @@
                     ];
                     let leaderboardHtml = '<p class="text-muted-color text-center py-4">No ranked players this week.</p>';
                     if (weekData.leaderboard && weekData.leaderboard.length > 0) {
+                        const oldRanks = new Map();
+                        if (weekData.start_of_week_leaderboard && weekData.start_of_week_leaderboard.length > 0) {
+                            let lastSkill = -9999; let rank = 0;
+                            weekData.start_of_week_leaderboard.forEach((player, index) => {
+                                const currentSkill = player.skill.toFixed(3);
+                                if (currentSkill !== lastSkill) rank = index + 1;
+                                lastSkill = currentSkill;
+                                oldRanks.set(player.name, rank);
+                            });
+                        }
+
                         let leaderboardHtmlParts = []; let lastSkill = -9999; let rank = 0;
+                        const isFirstWeekWithData = oldRanks.size === 0 && weekData.leaderboard.length > 0;
+
                         weekData.leaderboard.slice(0, 10).forEach((player, index) => {
                             const currentSkill = player.skill.toFixed(3);
                             if (currentSkill !== lastSkill) rank = index + 1;
                             lastSkill = currentSkill;
                             const rankInfo = this.getRankInfo(player.skill);
-                            leaderboardHtmlParts.push(`<li class="rounded-md hover:bg-slate-900/80"><a href="#" data-player-name="${player.name}" class="flex items-center justify-between p-2"><div class="flex items-center gap-3"><span class="font-bold text-muted-color w-5 text-center">${rank}</span><p class="font-semibold">${player.name}</p></div><div class="flex items-center gap-2"><span class="font-semibold text-sm">${player.skill.toFixed(2)}</span><span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span></div></a></li>`);
+                            
+                            let rankChange = null;
+                            if (isFirstWeekWithData) {
+                                rankChange = { change: 'new' };
+                            } else if (oldRanks.has(player.name)) {
+                                const oldRank = oldRanks.get(player.name);
+                                const change = oldRank - rank;
+                                rankChange = { change };
+                            } else if (oldRanks.size > 0) {
+                                rankChange = { change: 'new' };
+                            }
+
+                            let rankChangeHtml = '';
+                             if (rankChange) {
+                                if (rankChange.change === 'new') {
+                                    rankChangeHtml = `<span class="text-xs font-semibold text-sky-400">NEW</span>`;
+                                } else if (rankChange.change > 0) {
+                                    rankChangeHtml = `<div class="flex items-center gap-1 text-green-400"><i data-lucide="arrow-up" class="w-3 h-3"></i><span class="text-xs font-bold">${rankChange.change}</span></div>`;
+                                } else if (rankChange.change < 0) {
+                                    rankChangeHtml = `<div class="flex items-center gap-1 text-red-400"><i data-lucide="arrow-down" class="w-3 h-3"></i><span class="text-xs font-bold">${Math.abs(rankChange.change)}</span></div>`;
+                                } else {
+                                    rankChangeHtml = `<span class="text-xs font-bold text-slate-500" title="No change">–</span>`;
+                                }
+                            }
+
+                            leaderboardHtmlParts.push(`<li class="rounded-md hover:bg-slate-900/80"><a href="#" data-player-name="${player.name}" class="flex items-center justify-between p-2"><div class="flex items-center gap-3"><div class="flex items-center gap-2 w-12 justify-start"><span class="font-bold text-muted-color w-5 text-center">${rank}</span><div class="w-6 flex justify-center items-center">${rankChangeHtml}</div></div><p class="font-semibold">${player.name}</p></div><div class="flex items-center gap-2"><span class="font-semibold text-sm">${player.skill.toFixed(2)}</span><span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span></div></a></li>`);
                         });
-                        leaderboardHtml = `<ul class="space-y-2">${leaderboardHtmlParts.join('')}</ul>`;
+                        leaderboardHtml = `<ul class="space-y-1">${leaderboardHtmlParts.join('')}</ul>`;
                     }
                     const matchesHtml = weekMatches.length > 0 ? weekMatches.map(match => this.templates.matchCard(match, match.originalIndex)).join('') : '<p class="text-muted-color text-center py-8 col-span-full">No matches were played this week.</p>';
                     return `
@@ -1017,7 +1107,7 @@
                             Skill: { v1: s1.skill.toFixed(2), v2: s2.skill.toFixed(2), comp: c.skill },
                             "Peak Skill": { v1: s1.peakSkill.toFixed(2), v2: s2.peakSkill.toFixed(2), comp: c.peak },
                             "Win Rate": { v1: `${s1.winRate}%`, v2: `${s2.winRate}%`, comp: c.winRate },
-                            "Clutch Rate": { v1: `${s1.clutchRate.toFixed(1)}%`, v2: `${s2.clutchRate.toFixed(1)}%`, comp: c.clutch },
+                            "Clutch Rate": { v1: `${s1.clutchRate.toFixed(1)}%`, v2: `${s1.clutchRate.toFixed(1)}%`, comp: c.clutch },
                             "Record": { v1: `${s1.wins}-${s1.losses}`, v2: `${s2.wins}-${s2.losses}`, comp:['text-slate-400', 'text-slate-400']},
                             "Best Streak": { v1: `${s1.longestWinStreak}W`, v2: `${s2.longestWinStreak}W`, comp: c.streak },
                             "Current Streak": { v1: s1.currentStreak.count > 0 ? `${s1.currentStreak.count}${s1.currentStreak.type}` : '-', v2: s2.currentStreak.count > 0 ? `${s2.currentStreak.count}${s2.currentStreak.type}` : '-', comp: c.current }
@@ -1040,7 +1130,6 @@
                         </div>
                     </div>`,
                 guide: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-4 sm:p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-muted-color">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-muted-color">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-muted-color">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-4 sm:p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold">${tier.skill}</span></li>`).join('')}</ul></div></div>`,
-                // --- FIX: Converted to a function to correctly handle 'this' context ---
                 playerDetail: function(playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) {
                     return `<div class="glass-card p-4 sm:p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-start mb-4">
@@ -1137,6 +1226,4 @@
     </script>
 </body>
 </html>
-
-
 
