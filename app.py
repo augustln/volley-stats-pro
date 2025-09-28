@@ -9,8 +9,6 @@ import os
 # --- Configuration ---
 ADMIN_SECRET = os.environ.get("VOLLEY_ADMIN_SECRET", "change-me-to-a-real-password")
 SEASON_START = datetime(2025, 9, 1, tzinfo=timezone.utc)
-# --- FIX: Create an absolute path to the JSON file ---
-# This ensures the server can find the file regardless of where it's run from.
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 JSON_FILE_PATH = os.path.join(APP_ROOT, 'volley-pro-matches.json')
 
@@ -42,7 +40,6 @@ def find_award_winners(data_dict, take_highest=True):
         return {'names': [], 'value': 0}
 
     top_value = sorted_players[0][1]
-    # Use a small tolerance for floating point comparisons
     winners = [name for name, value in sorted_players if abs(value - top_value) < 1e-9]
     return {'names': winners, 'value': top_value}
 
@@ -50,7 +47,6 @@ def find_award_winners(data_dict, take_highest=True):
 def calculate_all_stats(data):
     """
     The main calculation engine. Processes all matches to generate stats.
-    This function is now stateless and receives all data from the frontend.
     """
     matches = data.get("matches", [])
     player_details = data.get("playerDetails", {})
@@ -73,6 +69,7 @@ def calculate_all_stats(data):
     ratings = {name: ts_env.create_rating() for name in player_names}
     history = {name: [{'mu': r.mu, 'sigma': r.sigma, 'match_id': -1}] for name, r in ratings.items()}
     last_played_index = {name: -1 for name in player_names}
+    leaderboard_before_last = []
 
     superlatives = {
         'upset': {'prob': 1}, 'dominant': {'margin': 0},
@@ -123,10 +120,10 @@ def calculate_all_stats(data):
 
         week_num = match.get('week', 0)
         if week_num > 0:
-            w_agg = weekly_data_aggregator.setdefault(week_num, {
-                'skillGains': {}, 'matchesPlayed': {}, 'clutchWins': {}, 'clutchAttempts': {},
-                'pointDifferential': {}, 'wins': {}, 'duoWins': {}, 'upset': {'prob': 1}, 'dominant': {'margin': 0}
-            })
+            w_agg = weekly_data_aggregator.setdefault(week_num,
+                                                      {'skillGains': {}, 'matchesPlayed': {}, 'clutchWins': {},
+                                                       'clutchAttempts': {}, 'pointDifferential': {}, 'wins': {},
+                                                       'duoWins': {}, 'upset': {'prob': 1}, 'dominant': {'margin': 0}})
             if winner_prob < w_agg['upset']['prob']: w_agg['upset'] = {'prob': winner_prob, 'match_id': match_index}
             if margin > w_agg['dominant']['margin']: w_agg['dominant'] = {'margin': margin, 'match_id': match_index}
 
@@ -141,16 +138,14 @@ def calculate_all_stats(data):
             history[player_name].append({'mu': new_rating.mu, 'sigma': new_rating.sigma, 'match_id': match_index})
 
             if week_num > 0:
-                is_winner = (player_name in match['teamA'] and match['scoreA'] > match['scoreB']) or \
-                            (player_name in match['teamB'] and match['scoreB'] > match['scoreA'])
-
+                is_winner = (player_name in match['teamA'] and match['scoreA'] > match['scoreB']) or (
+                            player_name in match['teamB'] and match['scoreB'] > match['scoreA'])
                 point_diff = (match['scoreA'] - match['scoreB']) if player_name in match['teamA'] else (
                             match['scoreB'] - match['scoreA'])
                 w_agg['skillGains'][player_name] = w_agg['skillGains'].get(player_name, 0) + skill_gain
                 w_agg['matchesPlayed'][player_name] = w_agg['matchesPlayed'].get(player_name, 0) + 1
                 w_agg['pointDifferential'][player_name] = w_agg['pointDifferential'].get(player_name, 0) + point_diff
                 if is_winner: w_agg['wins'][player_name] = w_agg['wins'].get(player_name, 0) + 1
-
                 if abs(match['scoreA'] - match['scoreB']) == 1:
                     w_agg['clutchAttempts'][player_name] = w_agg['clutchAttempts'].get(player_name, 0) + 1
                     if is_winner: w_agg['clutchWins'][player_name] = w_agg['clutchWins'].get(player_name, 0) + 1
@@ -165,38 +160,27 @@ def calculate_all_stats(data):
 
         for p in match['teamA'] + match['teamB']: last_played_index[p] = match_index
 
-    # --- FIX: Re-engineered the weekly snapshot logic to be robust ---
+        # --- FEATURE: Capture leaderboard state before the final match ---
+        if len(matches) > 1 and match_index == len(matches) - 2:
+            leaderboard_before_last = sorted(
+                [{'name': name, 'skill': r.mu - 3 * r.sigma, 'mu': r.mu, 'sigma': r.sigma} for name, r in
+                 ratings.items()],
+                key=lambda x: x['skill'], reverse=True)
+
     for week_num, w_data in weekly_data_aggregator.items():
         snapshot = []
         active_players = w_data.get('matchesPlayed', {}).keys()
-
         for player_name in active_players:
-            # Find all match IDs this player participated in during this week
-            weekly_match_ids = [
-                h['match_id'] for h in history[player_name]
-                if h['match_id'] != -1 and matches[h['match_id']].get('week') == week_num
-            ]
-
-            if not weekly_match_ids:
-                continue
-
-            # Find the last match ID for that week
+            weekly_match_ids = [h['match_id'] for h in history[player_name] if
+                                h['match_id'] != -1 and matches[h['match_id']].get('week') == week_num]
+            if not weekly_match_ids: continue
             last_match_id_for_week = max(weekly_match_ids)
-
-            # Find the history entry for that specific match
-            rating_at_week_end = next(
-                (h for h in history[player_name] if h['match_id'] == last_match_id_for_week),
-                None
-            )
-
+            rating_at_week_end = next((h for h in history[player_name] if h['match_id'] == last_match_id_for_week),
+                                      None)
             if rating_at_week_end:
-                snapshot.append({
-                    'name': player_name,
-                    'skill': rating_at_week_end['mu'] - 3 * rating_at_week_end['sigma'],
-                    'mu': rating_at_week_end['mu'],
-                    'sigma': rating_at_week_end['sigma']
-                })
-
+                snapshot.append(
+                    {'name': player_name, 'skill': rating_at_week_end['mu'] - 3 * rating_at_week_end['sigma'],
+                     'mu': rating_at_week_end['mu'], 'sigma': rating_at_week_end['sigma']})
         w_data['end_of_week_leaderboard_snapshot'] = sorted(snapshot, key=lambda x: x['skill'], reverse=True)
 
     final_leaderboard = sorted(
@@ -222,53 +206,45 @@ def calculate_all_stats(data):
 
         for m in matches:
             if name in m['teamA'] or name in m['teamB']:
-                won = (name in m['teamA'] and m['scoreA'] > m['scoreB']) or \
-                      (name in m['teamB'] and m['scoreB'] > m['scoreA'])
+                won = (name in m['teamA'] and m['scoreA'] > m['scoreB']) or (
+                            name in m['teamB'] and m['scoreB'] > m['scoreA'])
                 if won:
-                    wins += 1;
-                    win_streak += 1
+                    wins += 1; win_streak += 1
                 else:
-                    losses += 1;
-                    win_streak = 0
+                    losses += 1; win_streak = 0
                 longest_streak = max(longest_streak, win_streak)
-
                 if abs(m['scoreA'] - m['scoreB']) == 1:
                     clutch_attempts += 1
                     if won: clutch_wins += 1
 
         total_games = wins + losses
-        player_stats[name] = {
-            "name": name, "wins": wins, "losses": losses, "total": total_games,
-            "winRate": f"{(wins / total_games * 100) if total_games > 0 else 0:.1f}",
-            "skill": ratings[name].mu - 3 * ratings[name].sigma,
-            "peakSkill": max(skill_history) if skill_history else 0, "mu": ratings[name].mu,
-            "sigma": ratings[name].sigma,
-            "longestWinStreak": longest_streak, "currentStreak": {'count': current_streak, 'type': streak_type},
-            "clutchRate": (clutch_wins / clutch_attempts * 100) if clutch_attempts > 0 else 0,
-            "skillChangeLast10": (skill_history[-1] - skill_history[-11]) if len(skill_history) > 10 else (
-                skill_history[-1] - skill_history[0] if len(skill_history) > 1 else 0),
-            "last_played": last_played_index[name]
-        }
+        player_stats[name] = {"name": name, "wins": wins, "losses": losses, "total": total_games,
+                              "winRate": f"{(wins / total_games * 100) if total_games > 0 else 0:.1f}",
+                              "skill": ratings[name].mu - 3 * ratings[name].sigma,
+                              "peakSkill": max(skill_history) if skill_history else 0, "mu": ratings[name].mu,
+                              "sigma": ratings[name].sigma, "longestWinStreak": longest_streak,
+                              "currentStreak": {'count': current_streak, 'type': streak_type},
+                              "clutchRate": (clutch_wins / clutch_attempts * 100) if clutch_attempts > 0 else 0,
+                              "skillChangeLast10": (skill_history[-1] - skill_history[-11]) if len(
+                                  skill_history) > 10 else (
+                                  skill_history[-1] - skill_history[0] if len(skill_history) > 1 else 0),
+                              "last_played": last_played_index[name]}
 
+    # First pass: build the basic weekly data
     final_weekly_data = {}
     for week_num, w_data in weekly_data_aggregator.items():
         active_players = set(w_data['matchesPlayed'].keys())
-
         clutch_performances = {
             p: (w_data['clutchWins'].get(p, 0) / w_data['clutchAttempts'].get(p, 1), w_data['clutchAttempts'].get(p, 0))
             for p in active_players if w_data['clutchAttempts'].get(p, 0) >= 3}
-
         best_clutcher_val = max(clutch_performances.values()) if clutch_performances else (0, 0)
         clutcher_names = [p for p, v in clutch_performances.items() if v == best_clutcher_val]
-
         best_duo_key = max(w_data['duoWins'], key=w_data['duoWins'].get, default=None)
-
         best_duo_wins = w_data['duoWins'].get(best_duo_key, 0)
         best_duos = [list(k) for k, v in w_data['duoWins'].items() if v == best_duo_wins] if best_duo_wins > 0 else []
 
         final_weekly_data[week_num] = {
-            "weekNumber": week_num,
-            "leaderboard": w_data.get('end_of_week_leaderboard_snapshot', []),
+            "weekNumber": week_num, "leaderboard": w_data.get('end_of_week_leaderboard_snapshot', []),
             "topPerformer": find_award_winners(w_data['skillGains']),
             "mostActive": find_award_winners(w_data['matchesPlayed']),
             "bestPointDiff": find_award_winners(w_data['pointDifferential']),
@@ -278,9 +254,15 @@ def calculate_all_stats(data):
             "bestDuo": {"players_list": best_duos, "wins": best_duo_wins},
             "biggestBottler": find_award_winners(w_data['skillGains'], take_highest=False),
             "worstPointDiff": find_award_winners(w_data['pointDifferential'], take_highest=False),
-            "upset": w_data['upset'],
-            "dominant": w_data['dominant']
+            "upset": w_data['upset'], "dominant": w_data['dominant']
         }
+
+    # --- FEATURE: Second pass to add start-of-week leaderboards for comparison ---
+    for week_num in sorted(final_weekly_data.keys()):
+        if week_num > 1 and (week_num - 1) in final_weekly_data:
+            final_weekly_data[week_num]['start_of_week_leaderboard'] = final_weekly_data[week_num - 1]['leaderboard']
+        else:
+            final_weekly_data[week_num]['start_of_week_leaderboard'] = []
 
     final_duos = sorted([d for d in duos.values() if d['total'] >= 5],
                         key=lambda x: (x['wins'] / x['total'], x['total']), reverse=True)[:10]
@@ -288,10 +270,10 @@ def calculate_all_stats(data):
                              reverse=True)[:10]
 
     return {
-        "leaderboard": final_leaderboard, "playerStats": player_stats, "matches": matches,
-        "playerDetails": player_details, "history": history, "superlatives": superlatives,
-        "rivalries": final_rivalries, "duos": final_duos,
-        "totalMatches": len(matches), "weeklyData": final_weekly_data
+        "leaderboard": final_leaderboard, "leaderboard_before_last": leaderboard_before_last,
+        "playerStats": player_stats, "matches": matches, "playerDetails": player_details,
+        "history": history, "superlatives": superlatives, "rivalries": final_rivalries,
+        "duos": final_duos, "totalMatches": len(matches), "weeklyData": final_weekly_data
     }
 
 
@@ -316,10 +298,8 @@ def get_initial_data():
 
 @app.route('/api/process_data', methods=['POST'])
 def process_data_api():
-    """Stateless endpoint that receives data and returns calculated stats."""
     data = request.json
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    if not data: return jsonify({"error": "No data provided"}), 400
     return jsonify(calculate_all_stats(data))
 
 
@@ -347,14 +327,13 @@ def match_details_api(match_id):
     data = request.json
     matches, history = data.get('matches', []), data.get('history', {})
     if match_id >= len(matches) or not history: return jsonify({"error": "Invalid data"}), 400
-
     match = matches[match_id]
 
     def get_pre_match_rating(p_name):
         p_hist = history.get(p_name, [])
         for i in range(len(p_hist) - 1, -1, -1):
-            if p_hist[i]['match_id'] < match_id:
-                return ts_env.create_rating(mu=p_hist[i]['mu'], sigma=p_hist[i]['sigma'])
+            if p_hist[i]['match_id'] < match_id: return ts_env.create_rating(mu=p_hist[i]['mu'],
+                                                                             sigma=p_hist[i]['sigma'])
         return ts_env.create_rating()
 
     team_a_ratings = [get_pre_match_rating(p) for p in match['teamA']]
@@ -370,8 +349,7 @@ def match_details_api(match_id):
                 if i > 0: pre_entry = p_hist[i - 1]
                 break
         if post_entry and pre_entry:
-            pre_skill = pre_entry['mu'] - 3 * pre_entry['sigma']
-            post_skill = post_entry['mu'] - 3 * post_entry['sigma']
+            pre_skill, post_skill = pre_entry['mu'] - 3 * pre_entry['sigma'], post_entry['mu'] - 3 * post_entry['sigma']
             return {"name": p_name, "preSkill": f"{pre_skill:.2f}", "postSkill": f"{post_skill:.2f}",
                     "change": f"{post_skill - pre_skill:+.2f}"}
         return {"name": p_name, "preSkill": "N/A", "postSkill": "N/A", "change": "N/A"}
