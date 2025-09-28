@@ -113,45 +113,30 @@
 
     <div id="app-container" class="app-container">
         <div id="app" class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-            <div id="secret-screen" class="min-h-[80vh] flex items-center justify-center">
-                 <div class="glass-card p-8 w-full max-w-md text-center">
-                    <i data-lucide="shield-check" class="mx-auto h-12 w-12 text-violet-400 mb-4"></i>
-                    <h1 class="text-2xl font-bold mb-2">Admin Access</h1>
-                    <p class="text-slate-400 mb-6">Enter the admin secret to enable data management features.</p>
-                    <input type="password" id="admin-secret" class="w-full bg-slate-800/50 border border-slate-600 rounded-md px-4 py-2 text-center focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Enter admin secret...">
-                    <div class="flex gap-4 mt-6">
-                        <button id="start-readonly" class="flex-1 glass-button rounded-md py-2 px-4 font-semibold">Start in Read-Only Mode</button>
-                        <button id="start-with-secret" class="flex-1 bg-violet-600 text-white rounded-md py-2 px-4 font-semibold hover:bg-violet-700 transition">Continue</button>
-                    </div>
+            <header class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8">
+                <div class="text-center md:text-left mb-4 md:mb-0">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold">Volley Pro Stats</h1>
+                    <p class="text-muted-color">The ultimate tool for volleyball analytics</p>
                 </div>
+                <div id="admin-status" class="flex items-center gap-2 text-sm glass-card px-3 py-2"></div>
+            </header>
+
+            <div class="mb-6 border-b border-slate-700/50">
+                <nav id="tabs" class="flex flex-nowrap overflow-x-auto -mb-px text-sm font-medium">
+                    <a href="#" data-tab="leaderboard" class="tab py-4 px-3 md:px-4">Leaderboard</a>
+                    <a href="#" data-tab="player_stats" class="tab py-4 px-3 md:px-4">Player Stats</a>
+                    <a href="#" data-tab="weekly_review" class="tab py-4 px-3 md:px-4">Weekly Review</a>
+                    <a href="#" data-tab="head2head" class="tab py-4 px-3 md:px-4">H2H</a>
+                    <a href="#" data-tab="records" class="tab py-4 px-3 md:px-4">Records</a>
+                    <a href="#" data-tab="guide" class="tab py-4 px-3 md:px-4">System Guide</a>
+                    <a href="#" data-tab="admin" class="tab py-4 px-3 md:px-4">Admin</a>
+                </nav>
             </div>
 
-            <div id="main-app" class="hidden">
-                <header class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8">
-                    <div class="text-center md:text-left mb-4 md:mb-0">
-                        <h1 class="text-4xl font-extrabold">Volley Pro Stats</h1>
-                        <p class="text-muted-color">The ultimate tool for volleyball analytics</p>
-                    </div>
-                    <div id="admin-status" class="flex items-center gap-2 text-sm glass-card px-3 py-2"></div>
-                </header>
-
-                <div class="mb-6 border-b border-slate-700/50">
-                    <nav id="tabs" class="flex flex-nowrap overflow-x-auto -mb-px text-sm font-medium">
-                        <a href="#" data-tab="leaderboard" class="tab py-4 px-3 md:px-4">Leaderboard</a>
-                        <a href="#" data-tab="player_stats" class="tab py-4 px-3 md:px-4">Player Stats</a>
-                        <a href="#" data-tab="weekly_review" class="tab py-4 px-3 md:px-4">Weekly Review</a>
-                        <a href="#" data-tab="head2head" class="tab py-4 px-3 md:px-4">H2H</a>
-                        <a href="#" data-tab="records" class="tab py-4 px-3 md:px-4">Records</a>
-                        <a href="#" data-tab="guide" class="tab py-4 px-3 md:px-4">System Guide</a>
-                        <a href="#" data-tab="admin" class="tab py-4 px-3 md:px-4">Admin</a>
-                    </nav>
-                </div>
-
-                <main id="content-wrapper"></main>
-            </div>
+            <main id="content-wrapper"></main>
 
             <div id="modal-backdrop" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-4 z-50">
-                <div id="modal-content" class="glass-card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"></div>
+                <div id="modal-content" class="glass-card p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"></div>
             </div>
         </div>
     </div>
@@ -170,32 +155,39 @@
                 hasUnsavedChanges: false,
             },
 
+            hexToRgba(hex, alpha = 1) {
+                if (!hex) return `rgba(203, 213, 225, ${alpha})`; // default to silver
+                const hexVal = hex.startsWith('#') ? hex.slice(1) : hex;
+                if (hexVal.length !== 6) return `rgba(203, 213, 225, ${alpha})`;
+                const [r, g, b] = hexVal.match(/\w\w/g).map(x => parseInt(x, 16));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            },
+
             // --- INITIALIZATION & APP START ---
-            init() {
-                this.setupSecretScreen();
-                lucide.createIcons();
-            },
-
-            setupSecretScreen() {
-                document.getElementById('start-with-secret').addEventListener('click', () => this.startApp(true));
-                document.getElementById('start-readonly').addEventListener('click', () => this.startApp(false));
-                document.getElementById('admin-secret').addEventListener('keyup', (e) => {
-                    if (e.key === 'Enter') this.startApp(true);
-                });
-            },
-
-            async startApp(useSecret) {
-                if (useSecret) {
-                    this.state.adminSecret = document.getElementById('admin-secret').value;
-                }
-                document.getElementById('secret-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-
+            async init() {
                 this.renderAdminStatus();
                 this.setupTabListener();
                 this.setupDelegatedListeners();
-                this.state.activeTab = this.state.adminSecret ? 'admin' : 'guide';
-                this.activateTab(this.state.activeTab);
+
+                document.getElementById('content-wrapper').innerHTML = this.templates.loader('Loading match data...');
+                try {
+                    const response = await fetch('/api/get_initial_data');
+                    if (!response.ok) throw new Error('Failed to load initial data.');
+                    this.state.sourceData = await response.json();
+
+                    if (this.state.sourceData.matches.length > 0) {
+                        this.state.activeTab = 'leaderboard';
+                        await this.processData(false);
+                    } else {
+                        this.state.activeTab = 'admin';
+                    }
+                } catch (error) {
+                    console.error("Initialization Error:", error);
+                    this.state.activeTab = 'admin';
+                } finally {
+                    this.activateTab(this.state.activeTab);
+                    lucide.createIcons();
+                }
             },
 
             // --- DATA MANAGEMENT (CLIENT-SIDE) ---
@@ -230,25 +222,6 @@
                 }
             },
 
-            loadDataFromFile(file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const data = JSON.parse(event.target.result);
-                        if (!data.matches || !data.playerDetails) {
-                            throw new Error("Invalid JSON structure.");
-                        }
-                        this.state.sourceData = data;
-                        this.state.hasUnsavedChanges = false;
-                        this.state.activeTab = 'leaderboard'; // Switch to a useful tab after loading
-                        this.processData();
-                    } catch (e) {
-                        alert('Error parsing JSON file: ' + e.message);
-                    }
-                };
-                reader.readAsText(file);
-            },
-
             downloadData() {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.sourceData, null, 2));
                 const downloadAnchorNode = document.createElement('a');
@@ -261,17 +234,29 @@
                 this.activateTab('admin');
             },
 
-            // --- EVENT LISTENERS ---
+            // --- EVENT LISTENERS (REBUILT FOR RELIABILITY) ---
             setupDelegatedListeners() {
                 const appEl = document.getElementById('app');
                 appEl.addEventListener('click', (e) => {
-                    const playerLink = e.target.closest('[data-player-name]');
+                    const playerLink = e.target.closest('a[data-player-name]');
                     const matchLink = e.target.closest('[data-match-id]');
                     const backButton = e.target.closest('#back-to-main');
-                    if (e.target.closest('#modal-content')) return;
-                    if (playerLink) { e.preventDefault(); this.renderPlayerDetail(playerLink.dataset.playerName); }
-                    else if (matchLink) { e.preventDefault(); this.showMatchModal(matchLink.dataset.matchId); }
-                    else if (backButton) { e.preventDefault(); this.activateTab(backButton.dataset.originTab); }
+
+                    if (playerLink) {
+                        e.preventDefault();
+                        this.renderPlayerDetail(playerLink.dataset.playerName);
+                        return;
+                    }
+                    if (matchLink) {
+                        e.preventDefault();
+                        this.showMatchModal(matchLink.dataset.matchId);
+                        return;
+                    }
+                    if (backButton) {
+                        e.preventDefault();
+                        this.activateTab(backButton.dataset.originTab);
+                        return;
+                    }
                 });
             },
 
@@ -285,7 +270,12 @@
 
             attachEventListeners(viewName) {
                 if (viewName === 'admin') {
-                    document.getElementById('load-data-input')?.addEventListener('change', e => this.loadDataFromFile(e.target.files[0]));
+                    document.getElementById('admin-unlock-form')?.addEventListener('submit', e => {
+                        e.preventDefault();
+                        this.state.adminSecret = e.target.elements.adminSecret.value;
+                        this.renderAdminStatus();
+                        this.activateTab('admin');
+                    });
                     document.getElementById('add-match-form')?.addEventListener('submit', e => { e.preventDefault(); this.addMatch(); });
                     document.getElementById('download-data-btn')?.addEventListener('click', () => this.downloadData());
                 }
@@ -358,7 +348,8 @@
                 const isPeak = stats.skill.toFixed(2) >= stats.peakSkill.toFixed(2);
                 const displayName = `${stats.name} ${details.lastName || ''} ${details.number ? `#${details.number}`: ''}`.trim();
                 const recentMatchesHtml = this.renderPlayerMatchHistory(playerName);
-                contentWrapper.innerHTML = this.templates.playerDetail(playerName, displayName, stats, rank, isPeak, this.state.activeTab, recentMatchesHtml);
+                // --- FIX: Use .call(this, ...) to ensure the template has the correct 'this' context ---
+                contentWrapper.innerHTML = this.templates.playerDetail.call(this, playerName, displayName, stats, rank, isPeak, this.state.activeTab, recentMatchesHtml);
                 this.renderEloChart(playerName);
                 this.attachEventListeners('playerDetail');
                 lucide.createIcons();
@@ -455,7 +446,7 @@
                 this.renderPlayerStatsTable(true);
             },
 
-            updateHead2Head() {
+            async updateHead2Head() {
                 const p1Name = document.getElementById('h2h-player1').value;
                 const p2Name = document.getElementById('h2h-player2').value;
                 const resultsDiv = document.getElementById('h2h-results');
@@ -467,25 +458,34 @@
                 const stats2 = this.state.processedData.playerStats[p2Name];
                 const rank1 = this.getRankInfo(stats1.skill);
                 const rank2 = this.getRankInfo(stats2.skill);
-                let p1Wins = 0, p2Wins = 0, total = 0;
-                this.state.processedData.matches.forEach(m => {
-                    const p1OnA = m.teamA.includes(p1Name), p1OnB = m.teamB.includes(p1Name);
-                    const p2OnA = m.teamA.includes(p2Name), p2OnB = m.teamB.includes(p2Name);
-                    if((p1OnA && p2OnB) || (p1OnB && p2OnA)) {
-                        total++;
-                        const aWon = m.scoreA > m.scoreB;
-                        if ((p1OnA && aWon) || (p1OnB && !aWon)) p1Wins++;
-                        else p2Wins++;
-                    }
-                });
-                resultsDiv.innerHTML = this.templates.head2headResults(stats1, stats2, p1Wins, p2Wins, total, rank1, rank2);
+
+                try {
+                    const response = await fetch('/api/head2head', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            player1: p1Name,
+                            player2: p2Name,
+                            matches: this.state.sourceData.matches
+                        })
+                    });
+                    if (!response.ok) throw new Error('H2H calculation failed.');
+                    const h2hData = await response.json();
+                    resultsDiv.innerHTML = this.templates.head2headResults(stats1, stats2, h2hData.player1_wins, h2hData.player2_wins, h2hData.total_matches, rank1, rank2);
+                } catch (error) {
+                    console.error('H2H Error:', error);
+                    resultsDiv.innerHTML = '<p class="text-center text-red-400 mt-8">Could not calculate Head-to-Head stats.</p>';
+                }
             },
 
             renderEloChart(playerName) {
                 const ctx = document.getElementById('elo-chart')?.getContext('2d');
                 if (!ctx) return;
                 const fullHistory = this.state.processedData.history[playerName];
+                const playerStats = this.state.processedData.playerStats[playerName];
                 const skillData = fullHistory.map(h => h.mu - 3 * h.sigma);
+                const peakSkill = playerStats.peakSkill;
+
                 if (window.eloChartInstance) window.eloChartInstance.destroy();
 
                 const minSkill = Math.min(...skillData, 0);
@@ -495,22 +495,94 @@
                 const yMin = Math.floor(minSkill - buffer);
                 const yMax = Math.ceil(maxSkill + buffer);
 
+                const customAnnotationsPlugin = {
+                    id: 'customAnnotationsPlugin',
+                    afterDatasetsDraw: (chart) => {
+                        const { ctx, chartArea: { top, bottom, left, right }, scales: { y } } = chart;
+                        ctx.save();
+
+                        // --- Peak Skill Line and Label ---
+                        const peakY = y.getPixelForValue(peakSkill);
+                        if (peakY >= top && peakY <= bottom) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([4, 4]);
+                            ctx.moveTo(left, peakY);
+                            ctx.lineTo(right, peakY);
+                            ctx.stroke();
+                            ctx.setLineDash([]); // Reset dash
+
+                            ctx.font = '600 10px Inter, sans-serif';
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                            ctx.textAlign = 'right';
+                            ctx.textBaseline = 'bottom';
+                            ctx.fillText(`Peak Skill • ${peakSkill.toFixed(2)}`, right, peakY - 4);
+                        }
+
+                        // --- Rank Tier Lines and Labels ---
+                        const tiers = this.getRankInfo().tiers.slice(1); // Exclude Bronze base
+                        tiers.forEach(tier => {
+                            if (tier.min > y.min && tier.min < y.max) {
+                                const yPos = y.getPixelForValue(tier.min);
+                                ctx.beginPath();
+                                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                                ctx.lineWidth = 1;
+                                ctx.moveTo(left, yPos);
+                                ctx.lineTo(right, yPos);
+                                ctx.stroke();
+
+                                ctx.font = '600 10px Inter, sans-serif';
+                                ctx.fillStyle = tier.color;
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'bottom';
+                                ctx.fillText(`${tier.min} • ${tier.name}`, left + 4, yPos - 4);
+                            }
+                        });
+
+                        ctx.restore();
+                    }
+                }
+
                 window.eloChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: fullHistory.map((h,i) => i),
                         datasets: [{
-                            data: skillData, fill: true, tension: 0.1, pointRadius: 2, pointHoverRadius: 6,
-                            segment: { borderColor: ctx => this.getRankInfo(ctx.p1.raw)?.color || '#cbd5e1' },
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            data: skillData,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0, // No points
+                            pointHoverRadius: 5,
+                            stepped: false, // Back to smooth line
+                            segment: {
+                                borderColor: ctx => this.getRankInfo(ctx.p1.raw)?.color || '#cbd5e1',
+                                backgroundColor: ctx => this.hexToRgba(this.getRankInfo(ctx.p1.raw)?.color, 0.2), // More visible fill
+                            },
                         }]
                     },
                     options: {
                         animation: { duration: 0 }, maintainAspectRatio: false,
                         scales: { x: { display: false }, y: { min: yMin, max: yMax, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(128,128,128, 0.1)' } } },
                         interaction: { mode: 'index', intersect: false },
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
-                    }
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                mode: 'index',
+                                intersect: false,
+                                displayColors: false,
+                                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                                titleFont: { size: 0 },
+                                bodyFont: { size: 12, weight: 'bold' },
+                                padding: 8,
+                                callbacks: {
+                                    label: (context) => `Skill: ${context.raw.toFixed(2)}`
+                                }
+                            }
+                        }
+                    },
+                    plugins: [customAnnotationsPlugin], // Removed the full background plugin
                 });
             },
 
@@ -531,7 +603,8 @@
                     { name: 'Silver',   min: 5, class: 'rank-silver', color: '#cbd5e1'},
                     { name: 'Bronze',   min: -Infinity, class: 'rank-bronze', color: '#fdba74' }
                 ];
-                return tiers.find(t => skill >= t.min);
+                // If skill is passed, return the specific tier. If not, return all tiers.
+                return skill !== undefined ? tiers.find(t => skill >= t.min) : { tiers };
             },
 
             getWinRateColor(winRate) {
@@ -581,39 +654,29 @@
                 document.getElementById('modal-content').innerHTML = '';
             },
 
-            showMatchModal(matchId) {
+            async showMatchModal(matchId) {
                 const match = this.state.processedData.matches[matchId];
-                const { history } = this.state.processedData;
-                const getPreMatchRating = (player) => {
-                    for (let j = history[player].length - 1; j >= 0; j--) {
-                        if (history[player][j].match_id < matchId) return history[player][j];
-                    }
-                    return { mu: 25.0, sigma: 25.0/3.0 };
-                };
-                const teamARatings = match.teamA.map(p => getPreMatchRating(p));
-                const teamBRatings = match.teamB.map(p => getPreMatchRating(p));
-                const deltaMu = teamARatings.reduce((s,r)=>s+r.mu,0) - teamBRatings.reduce((s,r)=>s+r.mu,0);
-                const sumSigmaSq = [...teamARatings, ...teamBRatings].reduce((s,r)=>s+r.sigma**2,0);
-                const beta = 25.0 / 6.0;
-                const denom = Math.sqrt((teamARatings.length + teamBRatings.length) * beta**2 + sumSigmaSq);
-                const erf = x => { const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;const sign=x<0?-1:1;x=Math.abs(x);const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));return sign*y; };
-                const winProbA = denom > 0 ? 0.5 * (1 + erf(deltaMu / (Math.sqrt(2) * denom))) : 0.5;
+                this.showModal(this.templates.loader('Loading match details...'));
 
-                const getPlayerChange = (player) => {
-                    const pHist = history[player];
-                    const hEntry = pHist.find(h => h.match_id == matchId);
-                    if(!hEntry) return { name: player, change: 'N/A', preSkill: 'N/A', postSkill: 'N/A'};
-                    const hIndex = pHist.indexOf(hEntry);
-                    if (hIndex < 1) return { name: player, change: 'N/A', preSkill: 'N/A', postSkill: 'N/A'};
-                    const pre = pHist[hIndex-1];
-                    const preSkill = pre.mu - 3 * pre.sigma;
-                    const postSkill = hEntry.mu - 3 * hEntry.sigma;
-                    const change = postSkill - preSkill;
-                    return { name: player, change: change.toFixed(2), preSkill: preSkill.toFixed(2), postSkill: postSkill.toFixed(2) };
-                };
-                const teamAChanges = match.teamA.map(p => getPlayerChange(p));
-                const teamBChanges = match.teamB.map(p => getPlayerChange(p));
-                this.showModal(this.templates.matchModal(match, teamAChanges, teamBChanges, winProbA, matchId));
+                try {
+                    const response = await fetch(`/api/match_details/${matchId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            matches: this.state.sourceData.matches,
+                            history: this.state.processedData.history
+                        })
+                    });
+                    if (!response.ok) throw new Error('Match detail calculation failed.');
+                    const details = await response.json();
+
+                    const modalContent = this.templates.matchModal(match, details.team_a_changes, details.team_b_changes, details.win_prob_a, matchId);
+                    document.getElementById('modal-content').innerHTML = modalContent;
+                    lucide.createIcons();
+                } catch (error) {
+                    console.error('Match Modal Error:', error);
+                    document.getElementById('modal-content').innerHTML = this.templates.error('Could not load match details.');
+                }
             },
 
             showEditPlayerModal(playerName) {
@@ -680,41 +743,71 @@
                 this.state.sourceData.matches.push(newMatch);
                 this.state.hasUnsavedChanges = true;
                 form.reset();
-                this.state.activeTab = 'weekly_review'; // Go to review to see the new match
+                this.state.activeTab = 'weekly_review';
                 this.processData(false);
+            },
+
+            // --- AWARD FORMATTING HELPERS ---
+            formatAwardNames(data, valueFormatter) {
+                if (!data || !data.names || data.names.length === 0) return '<p class="text-muted-color">N/A</p>';
+                let namesHtml;
+                if (data.names.length > 1) {
+                    namesHtml = `<ul class="font-bold text-lg space-y-1">${data.names.map(name =>
+                        `<li><a href="#" class="truncate hover:underline" data-player-name="${name}">${name}</a></li>`
+                    ).join('')}</ul>`;
+                } else {
+                    const name = data.names[0];
+                    namesHtml = `<p class="font-bold text-lg truncate"><a href="#" class="hover:underline" data-player-name="${name}">${name}</a></p>`;
+                }
+                const valueHtml = `<p class="font-semibold">${valueFormatter(data.value)}</p>`;
+                return `${namesHtml}${valueHtml}`;
+            },
+            formatDuoAwards(data) {
+                if (!data || !data.players_list || data.players_list.length === 0) return '<p class="text-muted-color">N/A</p>';
+                const duosHtml = data.players_list.map(duo => `<p class="font-bold text-lg">${duo.map(p => `<a href="#" class="hover:underline" data-player-name="${p}">${p}</a>`).join(' & ')}</p>`).join('');
+                return `${duosHtml}<p class="font-semibold">${data.wins} Wins Together</p>`;
+            },
+            formatClutcherAward(data) {
+                if (!data || !data.names || data.names.length === 0) return '<p class="text-muted-color">No qualifiers (min 3 attempts)</p>';
+                let namesHtml;
+                if (data.names.length > 1) {
+                    namesHtml = `<ul class="font-bold text-lg space-y-1">${data.names.map(name =>
+                        `<li><a href="#" class="truncate hover:underline" data-player-name="${name}">${name}</a></li>`
+                    ).join('')}</ul>`;
+                } else {
+                    const name = data.names[0];
+                    namesHtml = `<p class="font-bold text-lg truncate"><a href="#" class="hover:underline" data-player-name="${name}">${name}</a></p>`;
+                }
+                const valueHtml = `<p class="font-semibold">${data.value.toFixed(0)}% Clutch Win Rate (${data.attempts} att.)</p>`;
+                return `${namesHtml}${valueHtml}`;
             },
 
             // --- HTML TEMPLATES ---
             templates: {
                 loader: message => `<div class="text-center py-20"><div class="mx-auto h-12 w-12 border-4 border-t-violet-500 border-slate-600 rounded-full animate-spin"></div><p class="mt-4 text-muted-color">${message}</p></div>`,
                 error: message => `<div class="glass-card p-8 text-center"><i data-lucide="alert-triangle" class="h-12 w-12 mx-auto text-red-400 mb-4"></i><h3 class="text-xl font-bold">An Error Occurred</h3><p class="text-muted-color mt-2">${message}</p></div>`,
-                noDataLoaded: () => `<div class="glass-card p-8 text-center"><i data-lucide="upload-cloud" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">No Data Loaded</h2><p class="text-muted-color">Go to the <strong class="text-violet-400">Admin</strong> tab to load your <code class="bg-slate-800/50 p-1 rounded">JSON</code> file.</p></div>`,
+                noDataLoaded: () => `<div class="glass-card p-8 text-center"><i data-lucide="database-zap" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">No Match Data Found</h2><p class="text-muted-color">The <code class="bg-slate-800/50 p-1 rounded">volley-pro-matches.json</code> file could not be loaded or is empty. Go to the <strong class="text-violet-400">Admin</strong> tab to manage data.</p></div>`,
                 noWeeklyData: () => `<div class="glass-card p-8 text-center"><i data-lucide="calendar-x" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">No Weekly Data</h2><p class="text-muted-color">Play some matches to see weekly summaries here.</p></div>`,
                 adminWrapper: (isAdmin, isDataLoaded, hasUnsavedChanges) => {
                     if (!isAdmin) {
-                        return `<div class="glass-card p-8 text-center max-w-md mx-auto"><i data-lucide="eye" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">Read-Only Mode</h2><p class="text-muted-color">Data management is disabled. Restart with the admin secret to enable it.</p></div>`;
+                        return `<div class="glass-card p-8 text-center max-w-md mx-auto"><i data-lucide="lock" class="h-12 w-12 mx-auto text-slate-500 mb-4"></i><h2 class="text-2xl font-bold mb-2">Admin Locked</h2><p class="text-muted-color mb-6">Enter the admin secret to add new matches, edit players, and download the updated data file.</p><form id="admin-unlock-form" class="flex items-center gap-2"><input type="password" name="adminSecret" class="w-full bg-slate-800/50 border border-slate-600 rounded-md px-4 py-2 text-center focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Enter admin secret..."><button type="submit" class="bg-violet-600 text-white rounded-md p-2 font-semibold hover:bg-violet-700 transition"><i data-lucide="arrow-right" class="h-6 w-6"></i></button></form></div>`;
                     }
                     let unsavedWarning = hasUnsavedChanges
                         ? `<div class="bg-yellow-500/10 text-yellow-300 text-sm p-3 rounded-lg flex items-center gap-3"><i data-lucide="alert-triangle" class="h-5 w-5"></i><div>You have unsaved changes. Download your data file to save them.</div></div>`
                         : '';
                     return `
                      <div class="max-w-xl mx-auto space-y-8">
-                        <div class="glass-card p-6">
+                        <div class="glass-card p-4 sm:p-6">
                              <h2 class="text-2xl font-bold mb-4">Data Management</h2>
-                             <p class="text-muted-color text-sm mb-4">This app runs in your browser. Load your <code class="bg-slate-800/50 p-1 rounded">.json</code> file to start. Remember to download your data to save any changes like new matches.</p>
-                            <div class="flex gap-4">
-                               <label class="flex-1 w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition flex items-center justify-center gap-2 cursor-pointer">
-                                   <i data-lucide="upload" class="w-5 h-5"></i> Load Data File
-                                   <input type="file" id="load-data-input" accept=".json" class="hidden">
-                               </label>
+                             <p class="text-muted-color text-sm mb-4">Remember to download your data to save any changes like new matches. This will create an updated <code class="bg-slate-800/50 p-1 rounded">.json</code> file for your repository.</p>
+                            <div class="flex">
                                <button id="download-data-btn" class="flex-1 w-full glass-button rounded-md py-3 font-semibold flex items-center justify-center gap-2 ${!isDataLoaded ? 'opacity-50 cursor-not-allowed' : ''}" ${!isDataLoaded ? 'disabled' : ''}>
-                                   <i data-lucide="download" class="w-5 h-5"></i> Download Data
+                                   <i data-lucide="download" class="w-5 h-5"></i> Download Data File
                                </button>
                             </div>
                             ${unsavedWarning}
                         </div>
-                        ${isDataLoaded ? `
-                        <div class="glass-card p-6">
+                        <div class="glass-card p-4 sm:p-6">
                             <h2 class="text-2xl font-bold mb-4">Add a New Match</h2>
                             <form id="add-match-form" class="space-y-4">
                                 <div><label class="block font-medium mb-1 text-slate-300">Team A</label><textarea name="teamA" rows="2" class="w-full bg-slate-800/50 border border-slate-600 rounded-md p-2" placeholder="Comma-separated names..."></textarea></div>
@@ -726,16 +819,15 @@
                                 <button type="submit" class="w-full bg-violet-600 text-white rounded-md py-3 font-semibold hover:bg-violet-700 transition">Record Match</button>
                             </form>
                         </div>
-                        ` : ''}
                     </div>`
                 },
                 leaderboardWrapper: (listHtml, showInactiveChecked) => `<div><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Player Leaderboard</h2><label class="flex items-center text-sm cursor-pointer text-slate-300"><input type="checkbox" id="toggle-inactive" class="mr-2 h-4 w-4 rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-600" ${showInactiveChecked ? 'checked' : ''}>Show Inactive</label></div><div class="glass-card"><ul id="leaderboard-list">${listHtml}</ul></div></div>`,
                 leaderboardRow: (player, displayName, rank, rankInfo, isInactive) => `
-                    <li class="flex items-center justify-between p-4 border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer ${isInactive ? 'opacity-50' : ''}" data-player-name="${player.name}">
-                        <div class="flex items-center gap-4">
+                    <li class="flex items-center justify-between p-3 sm:p-4 border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition-colors ${isInactive ? 'opacity-50' : ''}">
+                        <div class="flex items-center gap-3 sm:gap-4">
                             <span class="text-lg font-bold text-muted-color w-6 text-center">${rank}</span>
                              <div>
-                                <p class="font-bold text-lg">${displayName}</p>
+                                <a href="#" data-player-name="${player.name}" class="font-bold text-base sm:text-lg hover:underline">${displayName}</a>
                                 <p class="text-sm text-muted-color">Skill: ${player.skill.toFixed(2)}</p>
                             </div>
                         </div>
@@ -764,8 +856,8 @@
                 playerStatsRow: (p, winRateColor) => {
                     const streakColor = p.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400';
                     return `
-                    <tr class="border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition cursor-pointer" data-player-name="${p.name}">
-                        <td class="p-3 font-bold whitespace-nowrap sticky-col">${p.name}</td>
+                    <tr class="border-b border-slate-700/50 last:border-b-0 hover:bg-white/5 transition-colors">
+                        <td class="p-3 font-bold whitespace-nowrap sticky-col"><a href="#" data-player-name="${p.name}" class="hover:underline">${p.name}</a></td>
                         <td class="p-3 font-semibold text-violet-300">${p.skill.toFixed(2)}</td>
                         <td class="p-3">${p.peakSkill.toFixed(2)}</td>
                         <td class="p-3 font-semibold ${winRateColor}">${p.winRate}%</td>
@@ -802,32 +894,32 @@
                             else { comparableValue = parseFloat(value).toFixed(3); }
                             if (comparableValue !== lastValue) rank = i + 1;
                             lastValue = comparableValue;
-                            listHtml += `<li class="flex justify-between items-center" data-player-name="${p.name}"><span class="font-semibold cursor-pointer truncate"><span class="inline-block w-5">${rank}.</span> ${p.name}</span><span class="font-bold ${record.color} flex-shrink-0 ml-2">${record.format ? record.format(value) : value}</span></li>`;
+                            listHtml += `<li class="flex justify-between items-center"><a href="#" data-player-name="${p.name}" class="font-semibold truncate hover:underline"><span class="inline-block w-5">${rank}.</span> ${p.name}</a><span class="font-bold ${record.color} flex-shrink-0 ml-2">${record.format ? record.format(value) : value}</span></li>`;
                         });
                         return `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg mb-2">${record.title}</h3><ul class="space-y-2 text-sm">${listHtml}</ul></div>`;
                     };
                     return `
                     <div id="records-content" class="space-y-8">
-                         <div class="glass-card p-6">
+                         <div class="glass-card p-4 sm:p-6">
                             <h2 class="text-2xl font-bold mb-4">Season Records</h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${[
                                     { superlative: superlatives.upset, title: 'Biggest Upset', color: 'text-violet-400', line: `Winner had a <strong>${superlatives.upset?.prob ? (superlatives.upset.prob * 100).toFixed(1) : 'N/A'}%</strong> chance to win.` },
                                     { superlative: superlatives.dominant, title: 'Most Dominant Win', color: 'text-amber-400', line: `Won by a margin of <strong>${superlatives.dominant?.margin ?? 'N/A'}</strong> points.`},
                                     { superlative: superlatives.highCaliber, title: 'Highest Caliber Match', color: 'text-sky-400', line: `Average player skill was <strong>${superlatives.highCaliber?.avgSkill ? superlatives.highCaliber.avgSkill.toFixed(2) : 'N/A'}</strong>.`},
-                                    { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<span class="font-bold cursor-pointer" data-player-name="${superlatives.best_performance?.player}">${superlatives.best_performance?.player}</span> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
+                                    { superlative: superlatives.best_performance, title: 'Best Single-Match Performance', color: 'text-rose-400', line: `<a href="#" class="font-bold hover:underline" data-player-name="${superlatives.best_performance?.player}">${superlatives.best_performance?.player}</a> gained <strong>+${superlatives.best_performance?.skill_gain ? superlatives.best_performance.skill_gain.toFixed(2) : 'N/A'}</strong> skill.` }
                                 ].map(item => {
                                     const match = item.superlative?.match_id !== undefined ? matches[item.superlative.match_id] : null;
                                     return match ? `<div data-match-id="${item.superlative.match_id}" class="bg-slate-800/50 p-4 rounded-lg hover:bg-slate-800/80 cursor-pointer transition"><h3 class="font-bold text-lg ${item.color}">${item.title}</h3><p class="text-sm text-muted-color mb-2">${item.line}</p><div class="text-xs"><p>${match.teamA.join(', ')} vs ${match.teamB.join(', ')}</p><p class="font-bold text-lg">${match.scoreA} - ${match.scoreB}</p></div></div>` : `<div class="bg-slate-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg text-slate-500">${item.title}</h3><p class="text-sm text-slate-600">No matches yet.</p></div>`;
                                 }).join('')}
                             </div>
                         </div>
-                        <div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Player Records</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${playerRecords.map(record => recordListTemplate(record)).join('')}</div></div>
+                        <div class="glass-card p-4 sm:p-6"><h2 class="text-2xl font-bold mb-4">Player Records</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${playerRecords.map(record => recordListTemplate(record)).join('')}</div></div>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                            ${[
                                { title: 'Top Duos', data: duos },
                                { title: 'Biggest Rivalries', data: rivalries }
-                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-muted-color">Min. 5 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-muted-color uppercase"><th class="p-3">Players</th><th class="p-3">Record</th><th class="p-3">${table.title === 'Top Duos' ? 'Win %' : 'Total'}</th></tr></thead><tbody>${(table.data || []).length > 0 ? table.data.map(d => table.title === 'Top Duos' ? `<tr><td class="p-3 font-semibold">${d.players.join(' & ')}</td><td class="p-3">${d.wins}-${d.total-d.wins}</td><td class="p-3 font-bold ${this.getWinRateColor( (d.wins/d.total)*100 )}">${((d.wins/d.total)*100).toFixed(1)}%</td></tr>` : `<tr><td class="p-3 font-semibold">${d.players[0]} vs ${d.players[1]}</td><td class="p-3 font-bold text-violet-400">${d.p1_wins} - ${d.p2_wins}</td><td class="p-3">${d.total}</td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center text-muted-color">Not enough data.</td></tr>'}</tbody></table></div></div>`).join('')}
+                           ].map(table => `<div class="glass-card"><div class="p-4 border-b border-slate-700/50"><h2 class="text-xl font-bold">${table.title}</h2><p class="text-sm text-muted-color">Min. 5 matches played.</p></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-muted-color uppercase"><th class="p-3">Players</th><th class="p-3">Record</th><th class="p-3">${table.title === 'Top Duos' ? 'Win %' : 'Total'}</th></tr></thead><tbody>${(table.data || []).length > 0 ? table.data.map(d => table.title === 'Top Duos' ? `<tr><td class="p-3 font-semibold">${d.players.map(p => `<a href="#" data-player-name="${p}" class="hover:underline">${p}</a>`).join(' & ')}</td><td class="p-3">${d.wins}-${d.total-d.wins}</td><td class="p-3 font-bold ${this.getWinRateColor( (d.wins/d.total)*100 )}">${((d.wins/d.total)*100).toFixed(1)}%</td></tr>` : `<tr><td class="p-3 font-semibold">${d.players[0]} vs ${d.players[1]}</td><td class="p-3 font-bold text-violet-400">${d.p1_wins} - ${d.p2_wins}</td><td class="p-3">${d.total}</td></tr>`).join('') : '<tr><td colspan="3" class="p-4 text-center text-muted-color">Not enough data.</td></tr>'}</tbody></table></div></div>`).join('')}
                         </div>
                     </div>`},
                  weeklyReviewWrapper: function(weekData, weekMatches, availableWeeks, currentWeek) {
@@ -854,13 +946,15 @@
                     </div>`
                 },
                 weeklyReviewContent: function(weekData, weekMatches) {
-                    const awards = [
-                        { icon: 'trending-up', color: 'text-green-400', title: 'Top Performer', data: weekData.topPerformer, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">Skill Gained: +${data.value.toFixed(2)}</p>` : 'N/A' },
-                        { icon: 'flame', color: 'text-orange-400', title: 'Most Active', data: weekData.mostActive, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">${data.value} Matches Played</p>` : 'N/A' },
-                        { icon: 'crown', color: 'text-amber-400', title: 'Most Wins', data: weekData.mostWins, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">${data.value} Wins</p>` : 'N/A' },
-                        { icon: 'swords', color: 'text-sky-400', title: 'Best Duo', data: weekData.bestDuo, format: data => data.players.length > 0 ? `<p class="font-bold text-lg">${data.players.join(' & ')}</p><p class="font-semibold">${data.wins} Wins Together</p>` : 'N/A' },
-                        { icon: 'plus-minus', color: 'text-teal-400', title: 'Best Point Differential', data: weekData.bestPointDiff, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">Net Points: +${data.value}</p>` : 'N/A' },
-                        { icon: 'shield-check', color: 'text-rose-400', title: 'The Ice Man', data: weekData.weeklyClutcher, format: data => data.name ? `<p class="font-bold text-lg cursor-pointer" data-player-name="${data.name}">${data.name}</p><p class="font-semibold">${data.value.toFixed(0)}% Clutch Win Rate (${data.attempts} att.)</p>` : 'N/A' },
+                     const awards = [
+                        { icon: 'trending-up', color: 'text-green-400', title: 'Top Performer', data: weekData.topPerformer, format: (data) => this.formatAwardNames(data, v => `Skill Gained: +${v.toFixed(2)}`) },
+                        { icon: 'flame', color: 'text-orange-400', title: 'Most Active', data: weekData.mostActive, format: (data) => this.formatAwardNames(data, v => `${v} Matches Played`) },
+                        { icon: 'crown', color: 'text-amber-400', title: 'Most Wins', data: weekData.mostWins, format: (data) => this.formatAwardNames(data, v => `${v} Wins`) },
+                        { icon: 'users', color: 'text-sky-400', title: 'Best Duo(s)', data: weekData.bestDuo, format: (data) => this.formatDuoAwards(data) },
+                        { icon: 'diff', color: 'text-teal-400', title: 'Best Point Differential', data: weekData.bestPointDiff, format: (data) => this.formatAwardNames(data, v => `Net Points: +${v}`) },
+                        { icon: 'shield-check', color: 'text-violet-400', title: 'The Ice Man', data: weekData.weeklyClutcher, format: (data) => this.formatClutcherAward(data) },
+                        { icon: 'trending-down', color: 'text-red-400', title: 'Biggest Bottler', data: weekData.biggestBottler, format: (data) => this.formatAwardNames(data, v => `Skill Lost: ${v.toFixed(2)}`) },
+                        { icon: 'shield-off', color: 'text-rose-400', title: 'Most Points Conceded', data: weekData.worstPointDiff, format: (data) => this.formatAwardNames(data, v => `Net Points: ${v}`) },
                     ];
                     let leaderboardHtml = '<p class="text-muted-color text-center py-4">No ranked players this week.</p>';
                     if (weekData.leaderboard && weekData.leaderboard.length > 0) {
@@ -870,7 +964,7 @@
                             if (currentSkill !== lastSkill) rank = index + 1;
                             lastSkill = currentSkill;
                             const rankInfo = this.getRankInfo(player.skill);
-                            leaderboardHtmlParts.push(`<li class="flex items-center justify-between p-2 rounded-md bg-slate-900/40 hover:bg-slate-900/80 cursor-pointer" data-player-name="${player.name}"><div class="flex items-center gap-3"><span class="font-bold text-muted-color w-5 text-center">${rank}</span><p class="font-semibold">${player.name}</p></div><div class="flex items-center gap-2"><span class="font-semibold text-sm">${player.skill.toFixed(2)}</span><span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span></div></li>`);
+                            leaderboardHtmlParts.push(`<li class="rounded-md hover:bg-slate-900/80"><a href="#" data-player-name="${player.name}" class="flex items-center justify-between p-2"><div class="flex items-center gap-3"><span class="font-bold text-muted-color w-5 text-center">${rank}</span><p class="font-semibold">${player.name}</p></div><div class="flex items-center gap-2"><span class="font-semibold text-sm">${player.skill.toFixed(2)}</span><span class="rank-badge ${rankInfo.class}">${rankInfo.name}</span></div></a></li>`);
                         });
                         leaderboardHtml = `<ul class="space-y-2">${leaderboardHtmlParts.join('')}</ul>`;
                     }
@@ -883,14 +977,14 @@
                             <div class="lg:col-span-2">
                                 <h3 class="text-xl font-bold mb-4">Weekly Awards</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                    ${awards.map(award => `<div class="bg-slate-800/50 p-4 rounded-lg flex items-center gap-4"><i data-lucide="${award.icon}" class="h-8 w-8 ${award.color} flex-shrink-0"></i><div><p class="text-sm text-muted-color">${award.title}</p>${award.format(award.data)}</div></div>`).join('')}
+                                    ${awards.map(award => `<div class="bg-slate-800/50 p-4 rounded-lg flex items-start gap-3 sm:gap-4"><i data-lucide="${award.icon}" class="h-7 w-7 sm:h-8 sm:w-8 ${award.color} flex-shrink-0 mt-1"></i><div><p class="text-sm text-muted-color">${award.title}</p>${award.format(award.data)}</div></div>`).join('')}
                                 </div>
                                 <h3 class="text-xl font-bold mb-4">Matches This Week</h3>
                                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2">${matchesHtml}</div>
                             </div>
                         </div>`
                 },
-                head2headWrapper: playerNames => `<div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}</div><div id="h2h-results"><p class="text-center text-muted-color mt-8">Select two different players to compare.</p></div></div>`,
+                head2headWrapper: playerNames => `<div class="glass-card p-4 sm:p-6"><h2 class="text-2xl font-bold mb-4">Head-to-Head Comparison</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">${[1,2].map(n => `<div><label class="block text-sm font-medium mb-1 text-slate-300">Player ${n}</label><select id="h2h-player${n}" class="w-full p-2 border border-slate-600 rounded-md bg-slate-800/50"><option value="">Select player...</option>${playerNames.map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>`).join('')}</div><div id="h2h-results"><p class="text-center text-muted-color mt-8">Select two different players to compare.</p></div></div>`,
                 head2headResults: (s1, s2, p1Wins, p2Wins, total, r1, r2) => {
                     const compare = (v1, v2, higherIsBetter = true) => {
                         const val1 = parseFloat(v1) || 0, val2 = parseFloat(v2) || 0;
@@ -945,8 +1039,45 @@
                             <div class="p-2 rounded ${match.scoreB > match.scoreA ? 'bg-green-500/10' : 'bg-slate-800/30'}"><p class="font-bold mb-1 truncate ${match.scoreB > match.scoreA ? 'text-green-300' : ''}">Team B</p><p class="text-muted-color">${match.teamB.join(', ')}</p></div>
                         </div>
                     </div>`,
-                guide: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-muted-color">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-muted-color">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-muted-color">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold">${tier.skill}</span></li>`).join('')}</ul></div></div>`,
-                playerDetail: (playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) => `<div class="glass-card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-start mb-4"><button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back</button><button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button></div><div class="flex flex-wrap items-center gap-4 mb-6"><h2 class="text-3xl font-bold">${displayName}</h2><span class="rank-badge ${rank.class}">${rank.name}</span></div><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">${Object.entries({Skill: stats.skill.toFixed(2),"Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},"Win Rate": `${stats.winRate}%`,Record: `${stats.wins}-${stats.losses}`,"Best Streak": `${stats.longestWinStreak}W`,"Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}}).map(([label, data]) => {const value = typeof data === 'object' ? data.value : data; const glowClass = data.glow ? 'peak-skill-glow' : ''; const colorClass = data.color || ''; return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-muted-color uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`}).join('')}</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div><h3 class="text-xl font-semibold mb-2">Skill History</h3><div class="h-64"><canvas id="elo-chart"></canvas></div></div><div><h3 class="text-xl font-semibold mb-2">Recent Matches</h3><div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div></div></div></div>`,
+                guide: () => `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="glass-card p-4 sm:p-6 space-y-4"><h2 class="text-2xl font-bold">Ranking System Guide</h2><p class="text-muted-color">This app uses the <strong>TrueSkill</strong> algorithm. It tracks a player's skill (μ) and the system's confidence in that skill (σ).</p><p class="text-muted-color">To create a wider, more intuitive spread of ranks, this app uses the conservative skill estimate, calculated as <code class="bg-slate-800/50 p-1 rounded">μ - 3σ</code>. This value provides a clear separation between players of different tiers.</p><p class="text-muted-color">Your rating changes based on the match outcome, the skill of your teammates, and the skill of your opponents. Beating a team of highly-skilled players will earn you more points than beating a team of lower-skilled players.</p></div><div class="glass-card p-4 sm:p-6"><h2 class="text-2xl font-bold mb-4">Skill Tiers (Based on μ - 3σ)</h2><ul class="space-y-3">${[{ name: 'Master', skill: '25+', class: 'rank-master'},{ name: 'Diamond', skill: '20 - 24.99', class: 'rank-diamond'},{ name: 'Platinum', skill: '15 - 19.99', class: 'rank-platinum'},{ name: 'Gold', skill: '10 - 14.99', class: 'rank-gold'},{ name: 'Silver', skill: '5 - 9.99', class: 'rank-silver'},{ name: 'Bronze', skill: '< 5', class: 'rank-bronze'}].map(tier => `<li class="flex items-center justify-between p-2 bg-slate-800/50 rounded-md"><span class="rank-badge ${tier.class}">${tier.name}</span><span class="font-semibold">${tier.skill}</span></li>`).join('')}</ul></div></div>`,
+                // --- FIX: Converted to a function to correctly handle 'this' context ---
+                playerDetail: function(playerName, displayName, stats, rank, isPeak, originTab, recentMatchesHtml) {
+                    return `<div class="glass-card p-4 sm:p-6 max-w-5xl mx-auto">
+                        <div class="flex justify-between items-start mb-4">
+                            <button id="back-to-main" data-origin-tab="${originTab}" class="flex items-center gap-2 text-sm text-violet-400 hover:underline"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back</button>
+                            ${this.state.adminSecret ? `<button id="edit-player-btn" data-player-name="${playerName}" class="flex items-center gap-2 text-sm glass-button rounded-md py-1 px-3"><i data-lucide="edit-3" class="h-4 w-4"></i> Edit</button>` : ''}
+                        </div>
+                        <div class="flex flex-wrap items-center gap-4 mb-6">
+                            <h2 class="text-3xl font-bold">${displayName}</h2>
+                            <span class="rank-badge ${rank.class}">${rank.name}</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-center mb-8">
+                            ${Object.entries({
+                                Skill: stats.skill.toFixed(2),
+                                "Peak Skill": {value: stats.peakSkill.toFixed(2), glow: isPeak},
+                                "Win Rate": `${stats.winRate}%`,
+                                Record: `${stats.wins}-${stats.losses}`,
+                                "Best Streak": `${stats.longestWinStreak}W`,
+                                "Current Streak": { value: `${stats.currentStreak.count > 0 ? `${stats.currentStreak.count}${stats.currentStreak.type}`: '-'}`, color: stats.currentStreak.type === 'W' ? 'text-green-400' : 'text-red-400'}
+                            }).map(([label, data]) => {
+                                const value = typeof data === 'object' ? data.value : data;
+                                const glowClass = data.glow ? 'peak-skill-glow' : '';
+                                const colorClass = data.color || '';
+                                return `<div class="bg-slate-800/50 p-3 rounded-lg ${glowClass}"><p class="text-xs text-muted-color uppercase">${label}</p><p class="text-xl font-bold ${colorClass}">${value}</p></div>`
+                            }).join('')}
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xl font-semibold mb-2">Skill History</h3>
+                                <div class="h-64"><canvas id="elo-chart"></canvas></div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold mb-2">Recent Matches</h3>
+                                <div id="player-match-history" class="space-y-2 max-h-64 overflow-y-auto pr-2">${recentMatchesHtml}</div>
+                            </div>
+                        </div>
+                    </div>`
+                },
                 playerMatchHistoryRow: (match, matchId, won, skillChange, currentPlayer) => {
                     const highlightName = (team, name) => team.map(p => p === name ? `<strong class="text-violet-300 font-bold">${name}</strong>` : p).join(', ');
                     const teamAString = highlightName(match.teamA, currentPlayer);
@@ -969,11 +1100,11 @@
                     const renderTeam = changes => changes.map(p => `
                         <li class="flex justify-between items-center py-2">
                             <div>
-                                <p class="font-semibold">${p.name}</p>
+                                <a href="#" data-player-name="${p.name}" class="font-semibold hover:underline">${p.name}</a>
                                 <p class="text-xs text-muted-color">Pre-match Skill: ${p.preSkill}</p>
                             </div>
                             <div class="text-right">
-                                <span class="font-bold text-lg ${p.change > 0 ? 'text-green-400' : p.change < 0 ? 'text-red-400' : ''}">${p.change > 0 ? '+' : ''}${p.change}</span>
+                                <span class="font-bold text-lg ${parseFloat(p.change) > 0 ? 'text-green-400' : parseFloat(p.change) < 0 ? 'text-red-400' : ''}">${p.change}</span>
                                 <p class="text-xs text-muted-color">New Skill: ${p.postSkill}</p>
                             </div>
                         </li>`).join('');
@@ -1006,4 +1137,6 @@
     </script>
 </body>
 </html>
+
+
 
