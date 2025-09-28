@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Volley Stats Pro</title>
+    <title>Volley Pro Stats</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for data visualization -->
@@ -795,13 +795,13 @@
                     const name = data.names[0];
                     namesHtml = `<p class="font-bold text-lg truncate"><a href="#" class="hover:underline" data-player-name="${name}">${name}</a></p>`;
                 }
-                const valueHtml = `<p class="font-semibold">${valueFormatter(data.value)}</p>`;
+                const valueHtml = `<p class="font-medium text-slate-400 mt-1">${valueFormatter(data.value)}</p>`;
                 return `${namesHtml}${valueHtml}`;
             },
             formatDuoAwards(data) {
                 if (!data || !data.players_list || data.players_list.length === 0) return '<p class="text-muted-color">N/A</p>';
                 const duosHtml = data.players_list.map(duo => `<p class="font-bold text-lg">${duo.map(p => `<a href="#" class="hover:underline" data-player-name="${p}">${p}</a>`).join(' & ')}</p>`).join('');
-                return `${duosHtml}<p class="font-semibold">${data.wins} Wins Together</p>`;
+                return `${duosHtml}<p class="font-medium text-slate-400 mt-1">${data.wins} Wins Together</p>`;
             },
             formatClutcherAward(data) {
                 if (!data || !data.names || data.names.length === 0) return '<p class="text-muted-color">No qualifiers (min 3 attempts)</p>';
@@ -814,7 +814,7 @@
                     const name = data.names[0];
                     namesHtml = `<p class="font-bold text-lg truncate"><a href="#" class="hover:underline" data-player-name="${name}">${name}</a></p>`;
                 }
-                const valueHtml = `<p class="font-semibold">${data.value.toFixed(0)}% Clutch Win Rate (${data.attempts} att.)</p>`;
+                const valueHtml = `<p class="font-medium text-slate-400 mt-1">${data.value.toFixed(0)}% Clutch Win Rate (${data.attempts} att.)</p>`;
                 return `${namesHtml}${valueHtml}`;
             },
 
@@ -1107,7 +1107,7 @@
                             Skill: { v1: s1.skill.toFixed(2), v2: s2.skill.toFixed(2), comp: c.skill },
                             "Peak Skill": { v1: s1.peakSkill.toFixed(2), v2: s2.peakSkill.toFixed(2), comp: c.peak },
                             "Win Rate": { v1: `${s1.winRate}%`, v2: `${s2.winRate}%`, comp: c.winRate },
-                            "Clutch Rate": { v1: `${s1.clutchRate.toFixed(1)}%`, v2: `${s1.clutchRate.toFixed(1)}%`, comp: c.clutch },
+                            "Clutch Rate": { v1: `${s1.clutchRate.toFixed(1)}%`, v2: `${s2.clutchRate.toFixed(1)}%`, comp: c.clutch },
                             "Record": { v1: `${s1.wins}-${s1.losses}`, v2: `${s2.wins}-${s2.losses}`, comp:['text-slate-400', 'text-slate-400']},
                             "Best Streak": { v1: `${s1.longestWinStreak}W`, v2: `${s2.longestWinStreak}W`, comp: c.streak },
                             "Current Streak": { v1: s1.currentStreak.count > 0 ? `${s1.currentStreak.count}${s1.currentStreak.type}` : '-', v2: s2.currentStreak.count > 0 ? `${s2.currentStreak.count}${s2.currentStreak.type}` : '-', comp: c.current }
