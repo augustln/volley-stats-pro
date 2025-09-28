@@ -9,6 +9,10 @@ import os
 # --- Configuration ---
 ADMIN_SECRET = os.environ.get("VOLLEY_ADMIN_SECRET", "change-me-to-a-real-password")
 SEASON_START = datetime(2025, 9, 1, tzinfo=timezone.utc)
+# --- FIX: Create an absolute path to the JSON file ---
+# This ensures the server can find the file regardless of where it's run from.
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+JSON_FILE_PATH = os.path.join(APP_ROOT, 'volley-pro-matches.json')
 
 # --- TrueSkill Setup ---
 trueskill.setup(mu=25.0, sigma=25.0 / 3.0, beta=25.0 / 6.0, tau=25.0 / 300.0, draw_probability=0)
@@ -26,6 +30,21 @@ def _win_probability(team1_ratings, team2_ratings):
 
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+
+
+def find_award_winners(data_dict, take_highest=True):
+    """Helper to find winners, handling ties."""
+    if not data_dict:
+        return {'names': [], 'value': 0}
+
+    sorted_players = sorted(data_dict.items(), key=lambda item: item[1], reverse=take_highest)
+    if not sorted_players:
+        return {'names': [], 'value': 0}
+
+    top_value = sorted_players[0][1]
+    # Use a small tolerance for floating point comparisons
+    winners = [name for name, value in sorted_players if abs(value - top_value) < 1e-9]
+    return {'names': winners, 'value': top_value}
 
 
 def calculate_all_stats(data):
@@ -63,10 +82,10 @@ def calculate_all_stats(data):
     weekly_data_aggregator = {}
 
     for match_index, match in enumerate(matches):
-        team_a_ratings = {p: ratings[p] for p in match['teamA']}
-        team_b_ratings = {p: ratings[p] for p in match['teamB']}
+        team_a_ratings_map = {p: ratings[p] for p in match['teamA']}
+        team_b_ratings_map = {p: ratings[p] for p in match['teamB']}
 
-        win_prob_a = _win_probability(list(team_a_ratings.values()), list(team_b_ratings.values()))
+        win_prob_a = _win_probability(list(team_a_ratings_map.values()), list(team_b_ratings_map.values()))
         winner_prob = win_prob_a if match['scoreA'] > match['scoreB'] else 1 - win_prob_a
         if winner_prob < superlatives['upset']['prob']:
             superlatives['upset'] = {'prob': winner_prob, 'match_id': match_index}
@@ -75,10 +94,10 @@ def calculate_all_stats(data):
         if margin > superlatives['dominant']['margin']:
             superlatives['dominant'] = {'margin': margin, 'match_id': match_index}
 
-        avg_skill_a = sum(r.mu - 3 * r.sigma for r in team_a_ratings.values()) / len(
-            team_a_ratings) if team_a_ratings else 0
-        avg_skill_b = sum(r.mu - 3 * r.sigma for r in team_b_ratings.values()) / len(
-            team_b_ratings) if team_b_ratings else 0
+        avg_skill_a = sum(r.mu - 3 * r.sigma for r in team_a_ratings_map.values()) / len(
+            team_a_ratings_map) if team_a_ratings_map else 0
+        avg_skill_b = sum(r.mu - 3 * r.sigma for r in team_b_ratings_map.values()) / len(
+            team_b_ratings_map) if team_b_ratings_map else 0
         avg_match_skill = (avg_skill_a + avg_skill_b) / 2
         if avg_match_skill > superlatives['highCaliber']['avgSkill']:
             superlatives['highCaliber'] = {'avgSkill': avg_match_skill, 'match_id': match_index}
@@ -99,15 +118,14 @@ def calculate_all_stats(data):
                     rivalries[key]['p2_wins' if p1 == key[0] else 'p1_wins'] += 1
 
         ranks = [0, 1] if match['scoreA'] > match['scoreB'] else [1, 0]
-        new_ratings_map = ts_env.rate([team_a_ratings, team_b_ratings], ranks=ranks)
+        new_ratings_map = ts_env.rate([team_a_ratings_map, team_b_ratings_map], ranks=ranks)
         new_ratings = {p: r for team in new_ratings_map for p, r in team.items()}
 
         week_num = match.get('week', 0)
         if week_num > 0:
             w_agg = weekly_data_aggregator.setdefault(week_num, {
-                'skillGains': {}, 'matchesPlayed': {}, 'clutchWins': {},
-                'clutchAttempts': {}, 'pointDifferential': {}, 'wins': {}, 'duoWins': {},
-                'upset': {'prob': 1}, 'dominant': {'margin': 0}
+                'skillGains': {}, 'matchesPlayed': {}, 'clutchWins': {}, 'clutchAttempts': {},
+                'pointDifferential': {}, 'wins': {}, 'duoWins': {}, 'upset': {'prob': 1}, 'dominant': {'margin': 0}
             })
             if winner_prob < w_agg['upset']['prob']: w_agg['upset'] = {'prob': winner_prob, 'match_id': match_index}
             if margin > w_agg['dominant']['margin']: w_agg['dominant'] = {'margin': margin, 'match_id': match_index}
@@ -126,11 +144,11 @@ def calculate_all_stats(data):
                 is_winner = (player_name in match['teamA'] and match['scoreA'] > match['scoreB']) or \
                             (player_name in match['teamB'] and match['scoreB'] > match['scoreA'])
 
+                point_diff = (match['scoreA'] - match['scoreB']) if player_name in match['teamA'] else (
+                            match['scoreB'] - match['scoreA'])
                 w_agg['skillGains'][player_name] = w_agg['skillGains'].get(player_name, 0) + skill_gain
                 w_agg['matchesPlayed'][player_name] = w_agg['matchesPlayed'].get(player_name, 0) + 1
-                w_agg['pointDifferential'][player_name] = w_agg['pointDifferential'].get(player_name, 0) + \
-                                                          (match['scoreA'] - match['scoreB'] if player_name in match[
-                                                              'teamA'] else match['scoreB'] - match['scoreA'])
+                w_agg['pointDifferential'][player_name] = w_agg['pointDifferential'].get(player_name, 0) + point_diff
                 if is_winner: w_agg['wins'][player_name] = w_agg['wins'].get(player_name, 0) + 1
 
                 if abs(match['scoreA'] - match['scoreB']) == 1:
@@ -147,16 +165,43 @@ def calculate_all_stats(data):
 
         for p in match['teamA'] + match['teamB']: last_played_index[p] = match_index
 
-        if week_num > 0:
-            weekly_data_aggregator[week_num]['end_of_week_leaderboard_snapshot'] = sorted(
-                [{'name': name, 'skill': r.mu - 3 * r.sigma} for name, r in ratings.items()],
-                key=lambda x: x['skill'], reverse=True
+    # --- FIX: Re-engineered the weekly snapshot logic to be robust ---
+    for week_num, w_data in weekly_data_aggregator.items():
+        snapshot = []
+        active_players = w_data.get('matchesPlayed', {}).keys()
+
+        for player_name in active_players:
+            # Find all match IDs this player participated in during this week
+            weekly_match_ids = [
+                h['match_id'] for h in history[player_name]
+                if h['match_id'] != -1 and matches[h['match_id']].get('week') == week_num
+            ]
+
+            if not weekly_match_ids:
+                continue
+
+            # Find the last match ID for that week
+            last_match_id_for_week = max(weekly_match_ids)
+
+            # Find the history entry for that specific match
+            rating_at_week_end = next(
+                (h for h in history[player_name] if h['match_id'] == last_match_id_for_week),
+                None
             )
+
+            if rating_at_week_end:
+                snapshot.append({
+                    'name': player_name,
+                    'skill': rating_at_week_end['mu'] - 3 * rating_at_week_end['sigma'],
+                    'mu': rating_at_week_end['mu'],
+                    'sigma': rating_at_week_end['sigma']
+                })
+
+        w_data['end_of_week_leaderboard_snapshot'] = sorted(snapshot, key=lambda x: x['skill'], reverse=True)
 
     final_leaderboard = sorted(
         [{'name': name, 'skill': r.mu - 3 * r.sigma} for name, r in ratings.items()],
-        key=lambda x: x['skill'], reverse=True
-    )
+        key=lambda x: x['skill'], reverse=True)
 
     player_stats = {}
     for name in player_names:
@@ -180,9 +225,11 @@ def calculate_all_stats(data):
                 won = (name in m['teamA'] and m['scoreA'] > m['scoreB']) or \
                       (name in m['teamB'] and m['scoreB'] > m['scoreA'])
                 if won:
-                    wins += 1; win_streak += 1
+                    wins += 1;
+                    win_streak += 1
                 else:
-                    losses += 1; win_streak = 0
+                    losses += 1;
+                    win_streak = 0
                 longest_streak = max(longest_streak, win_streak)
 
                 if abs(m['scoreA'] - m['scoreB']) == 1:
@@ -207,32 +254,30 @@ def calculate_all_stats(data):
     for week_num, w_data in weekly_data_aggregator.items():
         active_players = set(w_data['matchesPlayed'].keys())
 
-        weekly_clutcher = max(
-            active_players,
-            key=lambda p: (
-            w_data['clutchWins'].get(p, 0) / w_data['clutchAttempts'].get(p, 1), w_data['clutchAttempts'].get(p, 0)),
-            default=None
-        )
+        clutch_performances = {
+            p: (w_data['clutchWins'].get(p, 0) / w_data['clutchAttempts'].get(p, 1), w_data['clutchAttempts'].get(p, 0))
+            for p in active_players if w_data['clutchAttempts'].get(p, 0) >= 3}
+
+        best_clutcher_val = max(clutch_performances.values()) if clutch_performances else (0, 0)
+        clutcher_names = [p for p, v in clutch_performances.items() if v == best_clutcher_val]
+
         best_duo_key = max(w_data['duoWins'], key=w_data['duoWins'].get, default=None)
+
+        best_duo_wins = w_data['duoWins'].get(best_duo_key, 0)
+        best_duos = [list(k) for k, v in w_data['duoWins'].items() if v == best_duo_wins] if best_duo_wins > 0 else []
 
         final_weekly_data[week_num] = {
             "weekNumber": week_num,
-            "leaderboard": [p for p in w_data.get('end_of_week_leaderboard_snapshot', []) if
-                            p['name'] in active_players],
-            "topPerformer": {"name": max(w_data['skillGains'], key=w_data['skillGains'].get, default=None),
-                             "value": max(w_data['skillGains'].values() or [0])},
-            "mostActive": {"name": max(w_data['matchesPlayed'], key=w_data['matchesPlayed'].get, default=None),
-                           "value": max(w_data['matchesPlayed'].values() or [0])},
-            "bestPointDiff": {
-                "name": max(w_data['pointDifferential'], key=w_data['pointDifferential'].get, default=None),
-                "value": max(w_data['pointDifferential'].values() or [0])},
-            "mostWins": {"name": max(w_data['wins'], key=w_data['wins'].get, default=None),
-                         "value": max(w_data['wins'].values() or [0])},
-            "weeklyClutcher": {"name": weekly_clutcher, "value": (w_data['clutchWins'].get(weekly_clutcher, 0) / w_data[
-                'clutchAttempts'].get(weekly_clutcher, 1)) * 100,
-                               "attempts": w_data['clutchAttempts'].get(weekly_clutcher, 0)},
-            "bestDuo": {"players": list(best_duo_key) if best_duo_key else [],
-                        "wins": w_data['duoWins'].get(best_duo_key, 0)},
+            "leaderboard": w_data.get('end_of_week_leaderboard_snapshot', []),
+            "topPerformer": find_award_winners(w_data['skillGains']),
+            "mostActive": find_award_winners(w_data['matchesPlayed']),
+            "bestPointDiff": find_award_winners(w_data['pointDifferential']),
+            "mostWins": find_award_winners(w_data.get('wins', {})),
+            "weeklyClutcher": {"names": clutcher_names, "value": best_clutcher_val[0] * 100,
+                               "attempts": best_clutcher_val[1]},
+            "bestDuo": {"players_list": best_duos, "wins": best_duo_wins},
+            "biggestBottler": find_award_winners(w_data['skillGains'], take_highest=False),
+            "worstPointDiff": find_award_winners(w_data['pointDifferential'], take_highest=False),
             "upset": w_data['upset'],
             "dominant": w_data['dominant']
         }
@@ -256,6 +301,19 @@ def serve_index():
     return send_from_directory('.', 'index.html')
 
 
+@app.route('/api/get_initial_data')
+def get_initial_data():
+    try:
+        with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if 'matches' not in data: data['matches'] = []
+        if 'playerDetails' not in data: data['playerDetails'] = {}
+        return jsonify(data)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        app.logger.error(f"Could not load data from {JSON_FILE_PATH}: {e}")
+        return jsonify({"matches": [], "playerDetails": {}})
+
+
 @app.route('/api/process_data', methods=['POST'])
 def process_data_api():
     """Stateless endpoint that receives data and returns calculated stats."""
@@ -265,6 +323,64 @@ def process_data_api():
     return jsonify(calculate_all_stats(data))
 
 
+@app.route('/api/head2head', methods=['POST'])
+def head2head_api():
+    data = request.json
+    p1, p2, matches = data.get('player1'), data.get('player2'), data.get('matches', [])
+    if not all([p1, p2, matches]): return jsonify({"error": "Missing data"}), 400
+    p1_wins, p2_wins, total = 0, 0, 0
+    for m in matches:
+        p1_on_a, p1_on_b = p1 in m['teamA'], p1 in m['teamB']
+        p2_on_a, p2_on_b = p2 in m['teamA'], p2 in m['teamB']
+        if (p1_on_a and p2_on_b) or (p1_on_b and p2_on_a):
+            total += 1
+            a_won = m['scoreA'] > m['scoreB']
+            if (p1_on_a and a_won) or (p1_on_b and not a_won):
+                p1_wins += 1
+            else:
+                p2_wins += 1
+    return jsonify({"player1_wins": p1_wins, "player2_wins": p2_wins, "total_matches": total})
+
+
+@app.route('/api/match_details/<int:match_id>', methods=['POST'])
+def match_details_api(match_id):
+    data = request.json
+    matches, history = data.get('matches', []), data.get('history', {})
+    if match_id >= len(matches) or not history: return jsonify({"error": "Invalid data"}), 400
+
+    match = matches[match_id]
+
+    def get_pre_match_rating(p_name):
+        p_hist = history.get(p_name, [])
+        for i in range(len(p_hist) - 1, -1, -1):
+            if p_hist[i]['match_id'] < match_id:
+                return ts_env.create_rating(mu=p_hist[i]['mu'], sigma=p_hist[i]['sigma'])
+        return ts_env.create_rating()
+
+    team_a_ratings = [get_pre_match_rating(p) for p in match['teamA']]
+    team_b_ratings = [get_pre_match_rating(p) for p in match['teamB']]
+    win_prob_a = _win_probability(team_a_ratings, team_b_ratings)
+
+    def get_skill_change(p_name):
+        p_hist = history.get(p_name, [])
+        post_entry, pre_entry = None, None
+        for i, entry in enumerate(p_hist):
+            if entry['match_id'] == match_id:
+                post_entry = entry
+                if i > 0: pre_entry = p_hist[i - 1]
+                break
+        if post_entry and pre_entry:
+            pre_skill = pre_entry['mu'] - 3 * pre_entry['sigma']
+            post_skill = post_entry['mu'] - 3 * post_entry['sigma']
+            return {"name": p_name, "preSkill": f"{pre_skill:.2f}", "postSkill": f"{post_skill:.2f}",
+                    "change": f"{post_skill - pre_skill:+.2f}"}
+        return {"name": p_name, "preSkill": "N/A", "postSkill": "N/A", "change": "N/A"}
+
+    team_a_changes = [get_skill_change(p) for p in match['teamA']]
+    team_b_changes = [get_skill_change(p) for p in match['teamB']]
+
+    return jsonify({"win_prob_a": win_prob_a, "team_a_changes": team_a_changes, "team_b_changes": team_b_changes})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
-
