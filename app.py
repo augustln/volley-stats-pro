@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import os
 
 # --- Configuration ---
-ADMIN_SECRET = os.environ.get("VOLLEY_ADMIN_SECRET", "change-me-to-a-real-password")
+ADMIN_SECRET = os.environ.get("VOLLEY_ADMIN_SECRET", "1243")
 SEASON_START = datetime(2025, 9, 1, tzinfo=timezone.utc)
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 JSON_FILE_PATH = os.path.join(APP_ROOT, 'volley-pro-matches.json')
@@ -362,3 +362,4 @@ def match_details_api(match_id):
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
+
